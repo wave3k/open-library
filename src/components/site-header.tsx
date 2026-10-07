@@ -1,9 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { LibraryBig, LogOut, Plus } from 'lucide-react'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { usePathname } from 'next/navigation'
+import { LibraryBig, Plus, Settings } from 'lucide-react'
+import { buttonVariants } from '@/components/ui/button'
 import { Avatar } from '@/components/avatar'
 import { usePlume } from '@/components/plume-provider'
 
@@ -11,13 +11,8 @@ import { usePlume } from '@/components/plume-provider'
 const BARE_ROUTES = ['/connexion', '/inscription', '/onboarding']
 
 export function SiteHeader() {
-  const { user, mine, logout } = usePlume()
-  const router = useRouter()
+  const { user } = usePlume()
   const pathname = usePathname()
-  const totalWords = mine.reduce(
-    (s, b) => s + (b.chapters ?? []).reduce((a, c) => a + (c.content ?? '').trim().split(/\s+/).filter(Boolean).length, 0),
-    0
-  )
 
   if (BARE_ROUTES.includes(pathname)) return null
 
@@ -30,13 +25,10 @@ export function SiteHeader() {
           </span>
           <span className="text-xl font-bold tracking-tight">Open Library</span>
         </Link>
-        <span className="text-muted-foreground hidden text-sm sm:block">Écris des livres, lis-les comme des livres</span>
+
         <div className="ml-auto flex items-center gap-2.5 text-sm">
           {user ? (
             <>
-              <span className="text-muted-foreground hidden items-center gap-1.5 lg:flex">
-                <LibraryBig size={15} /> {mine.length} livre(s) · {totalWords.toLocaleString('fr-FR')} mots
-              </span>
               <Link href="/bibliotheque" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
                 Bibliothèque
               </Link>
@@ -47,19 +39,14 @@ export function SiteHeader() {
                 <Avatar user={user} size={32} />
                 <span className="hidden max-w-[10rem] truncate font-semibold md:block">{user.display_name || user.name}</span>
               </Link>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="text-stone-500"
-                onClick={() => {
-                  logout()
-                  router.push('/')
-                }}
-                title="Se déconnecter"
-                aria-label="Se déconnecter"
+              <Link
+                href="/parametres"
+                className="text-muted-foreground rounded-lg p-2 hover:bg-stone-100 hover:text-stone-800"
+                title="Paramètres"
+                aria-label="Paramètres"
               >
-                <LogOut size={16} />
-              </Button>
+                <Settings size={18} />
+              </Link>
             </>
           ) : (
             <>

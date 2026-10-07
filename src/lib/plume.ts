@@ -265,6 +265,9 @@ export const ProfileAPI = {
     request<{ user: User; stats: ProfileStats; books: Book[] }>(`/api/users/${encodeURIComponent(username)}`),
   update: (p: Partial<Pick<User, 'display_name' | 'username' | 'bio' | 'avatar_emoji' | 'avatar_color' | 'avatar_image' | 'preferences' | 'referral_source' | 'onboarded'>>) =>
     request<{ user: User; stats: ProfileStats }>('/api/profile', { method: 'PUT', body: p }),
+  changePassword: (current_password: string, new_password: string) =>
+    request<{ ok: boolean }>('/api/profile/password', { method: 'POST', body: { current_password, new_password } }),
+  deleteAccount: () => request<{ ok: boolean }>('/api/account', { method: 'DELETE' }),
 }
 
 export const MediaAPI = {

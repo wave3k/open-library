@@ -384,6 +384,33 @@ export default {
 
       if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
 
+      if (req.method === 'POST' && path === '/api/profile/password') {
+        if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
+        const body = (await readJson(req)) || {}
+        const current = String(body.current_password ?? '')
+        const next = String(body.new_password ?? '')
+        if (next.length < 8) return json({ error: 'Nouveau mot de passe : 8 caractères minimum.' }, 400)
+        const row = await db.prepare('SELECT salt, password_hash FROM users WHERE id = ?').bind(me.id).first()
+        if (!row || !(await verifyPassword(current, row.salt, row.password_hash))) {
+          return json({ error: 'Mot de passe actuel incorrect.' }, 401)
+        }
+        const { salt, hash } = await hashPassword(next)
+        await db.prepare('UPDATE users SET salt = ?, password_hash = ? WHERE id = ?').bind(salt, hash, me.id).run()
+        // invalider les autres sessions
+        const auth = req.headers.get('Authorization') || ''
+        const m = auth.match(/^Bearer\s+(.+)$/i)
+        if (m) {
+          await db.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?').bind(me.id, await sha256Hex(m[1].trim())).run()
+        }
+        return json({ ok: true })
+      }
+
+      if (req.method === 'DELETE' && path === '/api/account') {
+        if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
+        await db.prepare('DELETE FROM users WHERE id = ?').bind(me.id).run()
+        return json({ ok: true })
+      }
+
       // ---------- RECOMMANDATIONS ----------
       if (req.method === 'GET' && path === '/api/recommendations') {
         const limit = Math.min(30, Math.max(1, parseInt(url.searchParams.get('limit') || '12', 10)))
