@@ -1,19 +1,25 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { LibraryBig, LogOut, Plus } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Avatar } from '@/components/avatar'
 import { usePlume } from '@/components/plume-provider'
 
+// Pages sans barre de navigation (parcours d'entrée)
+const BARE_ROUTES = ['/connexion', '/inscription', '/onboarding']
+
 export function SiteHeader() {
   const { user, mine, logout } = usePlume()
   const router = useRouter()
+  const pathname = usePathname()
   const totalWords = mine.reduce(
     (s, b) => s + (b.chapters ?? []).reduce((a, c) => a + (c.content ?? '').trim().split(/\s+/).filter(Boolean).length, 0),
     0
   )
+
+  if (BARE_ROUTES.includes(pathname)) return null
 
   return (
     <header className="bg-card/95 sticky top-0 z-20 border-b backdrop-blur">

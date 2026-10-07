@@ -134,12 +134,13 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
   }, [logout])
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       refreshBooks()
       refreshStats()
     }
-  }, [user, refreshBooks, refreshStats])
+    // On dépend de l'ID (stable), pas de l'objet user (remplacé à chaque fetch → boucle)
+  }, [user?.id, refreshBooks, refreshStats])
 
   const importLocalOnce = useCallback(async (u: User) => {
     try {

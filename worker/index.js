@@ -339,6 +339,14 @@ export default {
           sets.push('preferences = ?')
           vals.push(JSON.stringify(cleanTags(body.preferences).filter((g) => GENRES.includes(g)).slice(0, 7)))
         }
+        if (body.referral_source !== undefined) {
+          sets.push('referral_source = ?')
+          vals.push(REFERRALS.includes(String(body.referral_source)) ? String(body.referral_source) : 'other')
+        }
+        if (body.onboarded !== undefined) {
+          sets.push('onboarded = ?')
+          vals.push(body.onboarded ? 1 : 0)
+        }
         if (body.username !== undefined) {
           const u = String(body.username).trim().toLowerCase()
           if (!USERNAME_RE.test(u)) return json({ error: 'Nom d’utilisateur invalide.' }, 400)

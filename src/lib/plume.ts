@@ -64,6 +64,7 @@ export interface User {
   avatar_color: string
   avatar_image: string
   preferences: string[]
+  onboarded: boolean
   created_at: string
   email?: string
   referral_source?: string
@@ -262,7 +263,7 @@ export const BooksAPI = {
 export const ProfileAPI = {
   get: (username: string) =>
     request<{ user: User; stats: ProfileStats; books: Book[] }>(`/api/users/${encodeURIComponent(username)}`),
-  update: (p: Partial<Pick<User, 'display_name' | 'username' | 'bio' | 'avatar_emoji' | 'avatar_color' | 'avatar_image' | 'preferences'>>) =>
+  update: (p: Partial<Pick<User, 'display_name' | 'username' | 'bio' | 'avatar_emoji' | 'avatar_color' | 'avatar_image' | 'preferences' | 'referral_source' | 'onboarded'>>) =>
     request<{ user: User; stats: ProfileStats }>('/api/profile', { method: 'PUT', body: p }),
 }
 

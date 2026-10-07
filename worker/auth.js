@@ -56,6 +56,7 @@ export function publicProfile(row, { self = false } = {}) {
     avatar_color: row.avatar_color || 'amber',
     avatar_image: row.avatar_image || '',
     preferences: parseJsonArr(row.preferences),
+    onboarded: row.onboarded === 1,
     created_at: row.created_at,
     ...(self ? { email: row.email, referral_source: row.referral_source || '' } : {}),
   }
