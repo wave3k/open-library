@@ -97,7 +97,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
       setExplore(e)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erreur de chargement.'
-      if (/Connecte-toi|Non connecté|401/.test(msg)) logout(true)
+      if (/Connecte-toi|Non connecté|Session/.test(msg)) logout(true)
       else toast.error(msg)
     } finally {
       setLoadingBooks(false)

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, BookOpen, PenLine, Pencil, Trash2, Plus,
-  Star, Play, ChevronUp, ChevronDown, Download, FileText, Globe, Lock,
+  Star, Play, ChevronUp, ChevronDown, Download, FileText, Globe, Lock, Loader2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, buttonVariants } from '@/components/ui/button'
@@ -20,7 +20,7 @@ export default function BookDetailPage() {
   const router = useRouter()
   const {
     user, mine, explore, favs, progress,
-    toggleFav, applyBook, dropBook, markProgress,
+    toggleFav, applyBook, dropBook, markProgress, loadingBooks,
   } = usePlume()
   const [showEdit, setShowEdit] = useState(false)
   const [showExport, setShowExport] = useState(false)
@@ -34,6 +34,14 @@ export default function BookDetailPage() {
       <div className="py-20 text-center">
         <p className="font-semibold">Connecte-toi pour voir ce livre.</p>
         <a href="/connexion" className={buttonVariants({ className: 'mt-4' })}>Se connecter</a>
+      </div>
+    )
+  }
+  // Livres pas encore chargés : ne pas annoncer « introuvable » à tort
+  if (!book && loadingBooks) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-20 text-stone-500">
+        <Loader2 size={20} className="animate-spin" /> Chargement du livre…
       </div>
     )
   }

@@ -85,13 +85,21 @@ function serializeBook(book, chapters) {
 
 function cleanBookInput(body, partial = false) {
   const out = {}
+  const GENRES = ['Fantastique', 'Romance', 'Science-Fiction', 'Policier', 'Aventure', 'Horreur', 'Poésie']
+  const COVERS = ['indigo', 'emerald', 'rose', 'sky', 'amber', 'slate']
   if (body.title !== undefined || !partial) out.title = String(body.title ?? '').trim().slice(0, 80)
   if (body.author !== undefined || !partial) out.author = String(body.author ?? '').trim().slice(0, 40)
-  if (body.genre !== undefined || !partial) out.genre = String(body.genre ?? 'Aventure').slice(0, 30)
+  if (body.genre !== undefined || !partial) {
+    const g = String(body.genre ?? 'Aventure')
+    out.genre = GENRES.includes(g) ? g : 'Aventure'
+  }
   if (body.description !== undefined || !partial)
     out.description = String(body.description ?? '').trim().slice(0, 2000)
-  if (body.cover !== undefined || !partial) out.cover = String(body.cover ?? 'indigo').slice(0, 20)
-  if (body.is_public !== undefined) out.is_public = body.is_public ? 1 : 0
+  if (body.cover !== undefined || !partial) {
+    const c = String(body.cover ?? 'indigo')
+    out.cover = COVERS.includes(c) ? c : 'indigo'
+  }
+  if (body.is_public !== undefined) out.is_public = body.is_public === true || body.is_public === 1 ? 1 : 0
   else if (!partial) out.is_public = 1
   return out
 }
@@ -326,7 +334,8 @@ export default {
             return json({ book: await loadBook(db, bookId) })
           }
           if (req.method === 'DELETE') {
-            await db.prepare('DELETE FROM chapters WHERE id = ? AND book_id = ?').bind(chId, bookId).run()
+            const r = await db.prepare('DELETE FROM chapters WHERE id = ? AND book_id = ?').bind(chId, bookId).run()
+            if (!r.meta.changes) return json({ error: 'Chapitre introuvable.' }, 404)
             await db.prepare('UPDATE books SET updated_at = ? WHERE id = ?').bind(new Date().toISOString(), bookId).run()
             return json({ book: await loadBook(db, bookId) })
           }

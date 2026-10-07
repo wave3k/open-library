@@ -39,16 +39,6 @@ export default function BibliothequePage() {
   const [showCreate, setShowCreate] = useState(false)
   const [toDelete, setToDelete] = useState<Book | null>(null)
 
-  useEffect(() => {
-    if (user === null) {
-      // le provider n'a pas encore lu la session ; on attend un tick
-      const t = setTimeout(() => {
-        // si toujours rien, c'est un visiteur
-      }, 0)
-      return () => clearTimeout(t)
-    }
-  }, [user])
-
   const books = tab === 'mine' ? mine : explore
 
   const list = useMemo(() => {

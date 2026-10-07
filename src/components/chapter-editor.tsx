@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Save, Eye, History, X } from 'lucide-react'
+import { ArrowLeft, Save, Eye, History, X, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,7 +41,7 @@ function fmtTime(iso: string | null): string {
 
 export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId: string | 'new' }) {
   const router = useRouter()
-  const { user, mine, applyBook, markProgress } = usePlume()
+  const { user, mine, applyBook, markProgress, loadingBooks } = usePlume()
   const book = mine.find((b) => b.id === bookId) ?? null
   const chapter = chapterId !== 'new' ? book?.chapters?.find((c) => c.id === chapterId) ?? null : null
   const index = chapterId === 'new' ? (book?.chapters?.length ?? 0) : Math.max(0, (book?.chapters ?? []).findIndex((c) => c.id === chapterId))
@@ -129,6 +129,14 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
       <div className="py-20 text-center">
         <p className="font-semibold">Connecte-toi pour écrire.</p>
         <a href="/connexion" className={buttonVariants({ className: 'mt-4' })}>Se connecter</a>
+      </div>
+    )
+  }
+
+  if (!book && loadingBooks) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-20 text-stone-500">
+        <Loader2 size={20} className="animate-spin" /> Chargement…
       </div>
     )
   }

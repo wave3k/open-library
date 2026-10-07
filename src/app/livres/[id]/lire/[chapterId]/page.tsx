@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, ChevronLeft, ChevronRight, List, Type, Moon, Sun, BookOpen } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, List, Type, Moon, Sun, BookOpen, Loader2 } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { usePlume } from '@/components/plume-provider'
 
@@ -34,7 +34,7 @@ function loadPrefs(): { fontSize: number; theme: Theme } {
 export default function ReaderPage() {
   const { id, chapterId } = useParams<{ id: string; chapterId: string }>()
   const router = useRouter()
-  const { user, mine, explore, markProgress } = usePlume()
+  const { user, mine, explore, markProgress, loadingBooks } = usePlume()
   const book = [...mine, ...explore].find((b) => b.id === id) ?? null
 
   const chapters = book?.chapters ?? []
@@ -95,6 +95,14 @@ export default function ReaderPage() {
       <div className="py-20 text-center">
         <p className="font-semibold">Connecte-toi pour lire.</p>
         <a href="/connexion" className={buttonVariants({ className: 'mt-4' })}>Se connecter</a>
+      </div>
+    )
+  }
+
+  if (!book && loadingBooks) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-20 text-stone-500">
+        <Loader2 size={20} className="animate-spin" /> Chargement du chapitre…
       </div>
     )
   }
