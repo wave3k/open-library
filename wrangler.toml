@@ -1,0 +1,7 @@
+name = "open-library"
+compatibility_date = "2026-10-07"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "plume-db"
+database_id = "34cfc80a-6dc3-4665-9711-6d30f3aa79ca"
