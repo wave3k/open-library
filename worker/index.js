@@ -2,8 +2,17 @@ import { hashPassword, verifyPassword, publicUser, randomHex, sha256Hex, SESSION
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
+// Le front Next.js (dev local + Vercel) appelle l'API en cross-origin.
+// Pas de cookies (auth Bearer), donc '*' suffit.
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
+}
+
 function json(data, status = 200) {
-  return Response.json(data, { status })
+  return Response.json(data, { status, headers: CORS_HEADERS })
 }
 
 async function readJson(req) {
@@ -92,6 +101,10 @@ export default {
     const url = new URL(req.url)
     const path = url.pathname
     const db = env.DB
+
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS_HEADERS })
+    }
 
     if (!path.startsWith('/api/')) {
       return json({ error: 'Not found' }, 404)

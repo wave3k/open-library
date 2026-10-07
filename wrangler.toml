@@ -8,9 +8,8 @@ binding = "DB"
 database_name = "plume-db"
 database_id = "34cfc80a-6dc3-4665-9711-6d30f3aa79ca"
 
-[assets]
-directory = "./dist"
-not_found_handling = "single-page-application"
+# Backend API uniquement (le front Next.js est déployé séparément).
+# L'ancien bloc [assets] (dist/) a été retiré avec la migration Next.js.
 
 # ---- Staging : environnement de test (données séparées) ----
 [env.staging]

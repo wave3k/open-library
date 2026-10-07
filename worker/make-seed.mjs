@@ -1,7 +1,7 @@
 // Génère worker/seed.sql depuis les livres d'exemple (échappement SQL sûr).
 import { pbkdf2Sync, randomBytes } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
-import { seedBooks } from '../src/data/seedBooks.js'
+import { seedBooks } from './seedBooks.js'
 
 const esc = (s) => String(s ?? '').replace(/'/g, "''")
 
