@@ -59,12 +59,15 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState<Record<string, string>>({})
 
   useEffect(() => {
+    // Lecture de localStorage après montage (pas d'accès au storage côté serveur)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(getStoredUser())
     setReady(true)
   }, [])
 
   useEffect(() => {
     if (!user) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFavs(readLocal<string[]>(favKey(user.id), []))
     setProgress(readLocal<Record<string, string>>(progressKey(user.id), {}))
   }, [user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -105,6 +108,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
   }, [logout])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (user) refreshBooks()
   }, [user, refreshBooks])
 

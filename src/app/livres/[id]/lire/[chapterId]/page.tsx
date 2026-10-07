@@ -41,6 +41,8 @@ export default function ReaderPage() {
   const found = chapters.findIndex((c) => c.id === chapterId)
   const safeIdx = found >= 0 ? found : 0
   const chapter = chapters[safeIdx]
+  const chapterContent = chapter?.content
+  const chapterIds = chapters.map((c) => c.id).join(',')
 
   const [prefs, setPrefs] = useState(loadPrefs)
   const { fontSize, theme } = prefs
@@ -58,6 +60,7 @@ export default function ReaderPage() {
   useEffect(() => {
     const el = document.getElementById(SCROLL_ID)
     if (el) el.scrollTop = 0
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setProgress(0)
     if (book && chapter) markProgress(book.id, chapter.id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,7 +76,7 @@ export default function ReaderPage() {
     onScroll()
     el.addEventListener('scroll', onScroll, { passive: true })
     return () => el.removeEventListener('scroll', onScroll)
-  }, [chapterId, chapter?.content])
+  }, [chapterId, chapterContent])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -88,7 +91,8 @@ export default function ReaderPage() {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [safeIdx, chapters, id, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeIdx, chapterIds, id, router])
 
   if (!user) {
     return (

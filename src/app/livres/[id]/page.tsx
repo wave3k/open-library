@@ -90,18 +90,6 @@ export default function BookDetailPage() {
     }
   }
 
-  const doDeleteCh = async () => {
-    if (!toDeleteCh) return
-    try {
-      applyBook(await BooksAPI.removeChapter(book.id, toDeleteCh.id))
-      toast.success('Chapitre supprimé')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Suppression impossible.')
-    } finally {
-      setToDeleteCh(null)
-    }
-  }
-
   const moveChapter = async (chId: string, dir: -1 | 1) => {
     const arr = [...chapters]
     const i = arr.findIndex((c) => c.id === chId)
