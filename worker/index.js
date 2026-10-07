@@ -8,6 +8,7 @@ import {
   slugUsername,
   SESSION_DAYS,
 } from './auth.js'
+import { recommend } from './recommend.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const USERNAME_RE = /^[a-z0-9_]{3,24}$/
@@ -375,6 +376,13 @@ export default {
 
       if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
 
+      // ---------- RECOMMANDATIONS ----------
+      if (req.method === 'GET' && path === '/api/recommendations') {
+        const limit = Math.min(30, Math.max(1, parseInt(url.searchParams.get('limit') || '12', 10)))
+        const items = await recommend(db, meRow, limit)
+        return json({ items })
+      }
+
       // ---------- UPLOAD (R2) ----------
       if (req.method === 'POST' && path === '/api/upload') {
         if (!env.MEDIA) return json({ error: 'Stockage média indisponible.' }, 503)
@@ -485,6 +493,16 @@ export default {
             const body = (await readJson(req)) || {}
             const type = body.type === 'view' ? 'views' : 'impressions'
             await db.prepare(`UPDATE books SET ${type} = ${type} + 1 WHERE id = ?`).bind(bookId).run()
+            // Historique de lecture par utilisateur (pour les recommandations)
+            if (type === 'views') {
+              await db
+                .prepare(
+                  `INSERT INTO reads (user_id, book_id, read_count, last_read_at) VALUES (?, ?, 1, ?)
+                   ON CONFLICT(user_id, book_id) DO UPDATE SET read_count = read_count + 1, last_read_at = excluded.last_read_at`
+                )
+                .bind(me.id, bookId, new Date().toISOString())
+                .run()
+            }
           }
           return json({ ok: true })
         }

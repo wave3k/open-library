@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Plus, BookOpen, Star, Play, Globe, Loader2 } from 'lucide-react'
+import { Search, Plus, BookOpen, Star, Play, Globe, Loader2, Sparkles, Heart, Eye, MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,7 +17,7 @@ import { BookCover } from '@/components/book-cover'
 import { BookFormDialog } from '@/components/book-form-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { usePlume } from '@/components/plume-provider'
-import { BooksAPI, GENRES, bookWords, readingMinutes, type Book, type BookInput } from '@/lib/plume'
+import { BooksAPI, GENRES, bookWords, type Book, type BookInput, type Recommendation } from '@/lib/plume'
 
 const SORTS = [
   { id: 'recent', label: 'Récents' },
@@ -26,9 +26,24 @@ const SORTS = [
   { id: 'chapters', label: 'Plus de chapitres' },
 ] as const
 
+function chapterCount(b: Book) {
+  return b.chapter_count ?? (b.chapters?.length ?? 0)
+}
+
+function Meta({ book }: { book: Book }) {
+  return (
+    <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-400">
+      <span>{chapterCount(book)} chapitre(s)</span>
+      <span className="inline-flex items-center gap-1"><Eye size={12} /> {book.views}</span>
+      <span className="inline-flex items-center gap-1"><Heart size={12} /> {book.likes}</span>
+      <span className="inline-flex items-center gap-1"><MessageSquare size={12} /> {book.comments}</span>
+    </p>
+  )
+}
+
 export default function BibliothequePage() {
   const {
-    user, mine, explore, loadingBooks, tab, setTab,
+    user, mine, explore, recommended, loadingBooks, tab, setTab,
     favs, progress, toggleFav, prependMine,
   } = usePlume()
   const router = useRouter()
@@ -39,11 +54,11 @@ export default function BibliothequePage() {
   const [showCreate, setShowCreate] = useState(false)
   const [toDelete, setToDelete] = useState<Book | null>(null)
 
-  const books = tab === 'mine' ? mine : explore
+  const sourceBooks: Book[] = tab === 'mine' ? mine : tab === 'explore' ? explore : recommended.map((r) => r.book)
 
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase()
-    const filtered = books.filter((b) => {
+    const filtered = sourceBooks.filter((b) => {
       if (onlyFav && !favs.includes(b.id)) return false
       if (genre !== 'Tous' && b.genre !== genre) return false
       if (needle && !b.title.toLowerCase().includes(needle) && !b.author.toLowerCase().includes(needle)) return false
@@ -52,10 +67,10 @@ export default function BibliothequePage() {
     const arr = [...filtered]
     if (sort === 'az') arr.sort((a, b) => a.title.localeCompare(b.title, 'fr'))
     else if (sort === 'longest') arr.sort((a, b) => bookWords(b) - bookWords(a))
-    else if (sort === 'chapters') arr.sort((a, b) => (b.chapters?.length ?? 0) - (a.chapters?.length ?? 0))
-    else arr.sort((a, b) => (b.updated_at ?? b.created_at ?? '').localeCompare(a.updated_at ?? a.created_at ?? ''))
+    else if (sort === 'chapters') arr.sort((a, b) => chapterCount(b) - chapterCount(a))
+    else if (tab !== 'for-you') arr.sort((a, b) => (b.updated_at ?? b.created_at ?? '').localeCompare(a.updated_at ?? a.created_at ?? ''))
     return arr
-  }, [books, q, genre, sort, onlyFav, favs])
+  }, [sourceBooks, q, genre, sort, onlyFav, favs, tab])
 
   if (!user) {
     return (
@@ -94,18 +109,22 @@ export default function BibliothequePage() {
   }
 
   const resumeBook = (id: string) => {
-    const b = [...mine, ...explore].find((x) => x.id === id)
+    const b = [...mine, ...explore, ...recommended.map((r) => r.book)].find((x) => x.id === id)
     if (!b) return
     const target = (b.chapters ?? []).some((c) => c.id === progress[id]) ? progress[id] : b.chapters?.[0]?.id
     if (target) router.push(`/livres/${id}/lire/${target}`)
     else router.push(`/livres/${id}`)
   }
 
-  const favCount = books.filter((b) => favs.includes(b.id)).length
+  const favCount = sourceBooks.filter((b) => favs.includes(b.id)).length
 
   return (
     <div className="space-y-5">
-      <div className="bg-card flex w-fit rounded-xl p-1 shadow-sm">
+      {/* Onglets */}
+      <div className="bg-card flex w-fit flex-wrap rounded-xl p-1 shadow-sm">
+        <button onClick={() => setTab('for-you')} className={`flex items-center gap-1.5 rounded-lg px-5 py-2 text-sm font-semibold ${tab === 'for-you' ? 'bg-stone-900 text-white' : 'text-stone-500'}`}>
+          <Sparkles size={14} /> Pour toi
+        </button>
         <button onClick={() => setTab('mine')} className={`rounded-lg px-5 py-2 text-sm font-semibold ${tab === 'mine' ? 'bg-stone-900 text-white' : 'text-stone-500'}`}>
           Mes livres ({mine.length})
         </button>
@@ -154,14 +173,19 @@ export default function BibliothequePage() {
           Livres publiés par la communauté. Ouvre un livre pour le lire — seuls les propriétaires peuvent les modifier.
         </p>
       )}
+      {tab === 'for-you' && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+          Recommandé pour toi à partir de tes <strong>genres préférés</strong>, de tes <strong>lectures</strong> et de tes <strong>likes</strong>. Chaque suggestion explique pourquoi.
+        </p>
+      )}
 
-      {loadingBooks && books.length === 0 ? (
+      {loadingBooks && sourceBooks.length === 0 ? (
         <div className="flex items-center justify-center gap-2 py-20 text-stone-500">
-          <Loader2 size={20} className="animate-spin" /> Chargement de ta bibliothèque…
+          <Loader2 size={20} className="animate-spin" /> Chargement…
         </div>
       ) : (
         <>
-          {books.length > 0 && list.length === 0 && (
+          {tab !== 'for-you' && sourceBooks.length > 0 && list.length === 0 && (
             <div className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-10 text-center">
               <BookOpen size={28} className="mx-auto text-stone-400" />
               <p className="mt-2 font-semibold text-stone-700">Aucun livre ne correspond</p>
@@ -172,7 +196,7 @@ export default function BibliothequePage() {
             </div>
           )}
 
-          {tab === 'mine' && books.length === 0 && (
+          {tab === 'mine' && sourceBooks.length === 0 && (
             <div className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-10 text-center">
               <BookOpen size={28} className="mx-auto text-stone-400" />
               <p className="mt-2 font-semibold text-stone-700">Tu n’as pas encore de livre</p>
@@ -181,7 +205,16 @@ export default function BibliothequePage() {
             </div>
           )}
 
-          {tab === 'explore' && books.length === 0 && (
+          {tab === 'for-you' && recommended.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-10 text-center">
+              <Sparkles size={28} className="mx-auto text-stone-400" />
+              <p className="mt-2 font-semibold text-stone-700">Pas encore de recommandations</p>
+              <p className="text-sm text-stone-500">Ajoute des genres préférés à ton profil, ou explore quelques livres : les suggestions arriveront vite.</p>
+              <Button variant="outline" className="mt-4" onClick={() => router.push('/profil')}>Compléter mon profil</Button>
+            </div>
+          )}
+
+          {tab === 'explore' && sourceBooks.length === 0 && (
             <div className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-10 text-center">
               <Globe size={28} className="mx-auto text-stone-400" />
               <p className="mt-2 font-semibold text-stone-700">Rien à explorer pour l’instant</p>
@@ -191,10 +224,10 @@ export default function BibliothequePage() {
 
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {list.map((b) => {
-              const words = bookWords(b)
               const isFav = favs.includes(b.id)
               const lastIdx = (b.chapters ?? []).findIndex((c) => c.id === progress[b.id])
-              const resumeLabel = lastIdx >= 0 ? `Reprendre · ch. ${lastIdx + 1}` : (b.chapters?.length ? 'Commencer' : null)
+              const resumeLabel = lastIdx >= 0 ? `Reprendre · ch. ${lastIdx + 1}` : (chapterCount(b) ? 'Commencer' : null)
+              const rec: Recommendation | undefined = tab === 'for-you' ? recommended.find((r) => r.book.id === b.id) : undefined
               return (
                 <article
                   key={b.id}
@@ -222,12 +255,15 @@ export default function BibliothequePage() {
                     <h3 className="mt-1.5 truncate font-bold">{b.title}</h3>
                     <p className="truncate text-sm text-stone-500">
                       par {b.author}
-                      {b.owner_name && tab === 'explore' && <span> · publié par {b.owner_name}</span>}
+                      {b.owner_name && tab !== 'mine' && <span> · publié par {b.owner_name}</span>}
                     </p>
                     <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-stone-500">{b.description || 'Aucune description.'}</p>
-                    <p className="mt-2 text-xs text-stone-400">
-                      {(b.chapters ?? []).length} chapitre(s) · {words.toLocaleString('fr-FR')} mots · ~{readingMinutes(b)} min
-                    </p>
+                    {rec && (
+                      <p className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                        <Sparkles size={11} /> {rec.reason}
+                      </p>
+                    )}
+                    <Meta book={b} />
                     <div className="mt-2.5 flex flex-wrap gap-1.5" onClick={(e) => e.stopPropagation()}>
                       {resumeLabel && (
                         <button onClick={() => resumeBook(b.id)} className="flex items-center gap-1 rounded-lg bg-amber-700 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-amber-600">

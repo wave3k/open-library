@@ -17,6 +17,7 @@ import {
   writeLocal,
   type Book,
   type ProfileStats,
+  type Recommendation,
   type User,
 } from '@/lib/plume'
 
@@ -28,9 +29,10 @@ interface PlumeCtx {
   stats: ProfileStats | null
   mine: Book[]
   explore: Book[]
+  recommended: Recommendation[]
   loadingBooks: boolean
-  tab: 'mine' | 'explore'
-  setTab: (t: 'mine' | 'explore') => void
+  tab: 'mine' | 'explore' | 'for-you'
+  setTab: (t: 'mine' | 'explore' | 'for-you') => void
   favs: string[]
   progress: Record<string, string>
   refreshBooks: () => Promise<void>
@@ -60,8 +62,9 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
   const [mine, setMine] = useState<Book[]>([])
   const [explore, setExplore] = useState<Book[]>([])
+  const [recommended, setRecommended] = useState<Recommendation[]>([])
   const [loadingBooks, setLoadingBooks] = useState(false)
-  const [tab, setTab] = useState<'mine' | 'explore'>('mine')
+  const [tab, setTab] = useState<'mine' | 'explore' | 'for-you'>('for-you')
   const [favs, setFavs] = useState<string[]>([])
   const [progress, setProgress] = useState<Record<string, string>>({})
 
@@ -91,6 +94,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
       setStats(null)
       setMine([])
       setExplore([])
+      setRecommended([])
       setFavs([])
       setProgress({})
       router.push('/')
@@ -103,9 +107,10 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
     if (!getStoredUser()) return
     setLoadingBooks(true)
     try {
-      const [m, e] = await Promise.all([BooksAPI.mine(), BooksAPI.explore()])
+      const [m, e, rec] = await Promise.all([BooksAPI.mine(), BooksAPI.explore(), BooksAPI.recommendations(12)])
       setMine(m)
       setExplore(e)
+      setRecommended(rec)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erreur de chargement.'
       if (/Connecte-toi|Non connecté|Session/.test(msg)) logout(true)
@@ -179,7 +184,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
     async (u: User, token: string) => {
       setSession(u, token)
       setUser(u)
-      setTab('mine')
+      setTab('for-you')
       await importLocalOnce(u)
       refreshBooks()
       refreshStats()
@@ -224,6 +229,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
   const applyBook = useCallback((b: Book) => {
     setMine((prev) => (prev.some((x) => x.id === b.id) ? prev.map((x) => (x.id === b.id ? b : x)) : prev))
     setExplore((prev) => prev.map((x) => (x.id === b.id ? b : x)))
+    setRecommended((prev) => prev.map((x) => (x.book.id === b.id ? { ...x, book: b } : x)))
   }, [])
 
   const dropBook = useCallback((id: string) => {
@@ -240,6 +246,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
       stats,
       mine,
       explore,
+      recommended,
       loadingBooks,
       tab,
       setTab,
@@ -256,7 +263,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
       dropBook,
       prependMine,
     }),
-    [user, stats, mine, explore, loadingBooks, tab, favs, progress, refreshBooks, refreshStats, login, logout, updateProfile, toggleFav, markProgress, applyBook, dropBook, prependMine]
+    [user, stats, mine, explore, recommended, loadingBooks, tab, favs, progress, refreshBooks, refreshStats, login, logout, updateProfile, toggleFav, markProgress, applyBook, dropBook, prependMine]
   )
 
   if (!ready) return null

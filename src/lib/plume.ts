@@ -43,8 +43,15 @@ export interface Book {
   impressions: number
   likes: number
   comments: number
+  chapter_count?: number
   chapters: Chapter[]
   owner: AuthorRef
+}
+
+export interface Recommendation {
+  book: Book
+  reason: string
+  score: number
 }
 
 export interface User {
@@ -220,6 +227,8 @@ export interface BookInput {
 export const BooksAPI = {
   mine: () => request<{ books: Book[] }>('/api/books?scope=mine').then((d) => d.books),
   explore: () => request<{ books: Book[] }>('/api/books?scope=explore').then((d) => d.books),
+  recommendations: (limit = 12) =>
+    request<{ items: Recommendation[] }>(`/api/recommendations?limit=${limit}`).then((d) => d.items),
   create: (p: BookInput) => request<{ book: Book }>('/api/books', { method: 'POST', body: p }).then((d) => d.book),
   update: (id: string, p: Partial<BookInput>) =>
     request<{ book: Book }>(`/api/books/${id}`, { method: 'PUT', body: p }).then((d) => d.book),
