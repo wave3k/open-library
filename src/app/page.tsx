@@ -35,7 +35,7 @@ export default function LandingPage() {
             Lis-les <span className="text-amber-700">comme des livres.</span>
           </h1>
           <p className="text-muted-foreground mt-4 max-w-lg text-lg leading-relaxed">
-            Plume, c’est ton atelier d’écriture façon Wattpad : crée un compte, écris tes
+            Open Library, c’est ton atelier d’écriture façon Wattpad : crée un compte, écris tes
             histoires chapitre par chapitre, publie-les pour les partager — et dévore
             celles des autres dans un vrai mode lecture.
           </p>

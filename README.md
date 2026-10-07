@@ -1,6 +1,6 @@
-# Plume — Open Library
+# Open Library
 
-**Plume** est une application web (façon Wattpad) pour **écrire des livres et les relire comme de vrais livres** : landing page, comptes utilisateurs, bibliothèque personnelle + exploration des livres publics, éditeur de chapitres et mode lecture soigné.
+**Open Library** est une application web (façon Wattpad) pour **écrire des livres et les relire comme de vrais livres** : landing page, comptes utilisateurs, bibliothèque personnelle + exploration des livres publics, éditeur de chapitres et mode lecture soigné.
 
 🌍 **En ligne : https://open-library.lirostudio.workers.dev**
 

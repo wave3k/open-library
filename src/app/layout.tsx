@@ -8,7 +8,7 @@ import { SiteHeader } from '@/components/site-header'
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
-  title: 'Plume — Écris et lis des livres',
+  title: 'Open Library — Écris et lis des livres',
   description: 'Crée des livres, écris-les chapitre par chapitre et relis-les comme de vrais livres. Partage-les avec la communauté.',
 }
 

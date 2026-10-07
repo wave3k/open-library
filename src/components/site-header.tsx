@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Feather, LibraryBig, LogOut, Plus } from 'lucide-react'
+import { LibraryBig, LogOut, Plus } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { usePlume } from '@/components/plume-provider'
 import { bookWords } from '@/lib/plume'
@@ -18,11 +18,11 @@ export function SiteHeader({ onCreate }: { onCreate?: () => void }) {
   return (
     <header className="bg-card/95 sticky top-0 z-20 border-b backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
-        <Link href={user ? '/bibliotheque' : '/'} className="flex items-center gap-2" aria-label="Accueil Plume">
+        <Link href={user ? '/bibliotheque' : '/'} className="flex items-center gap-2" aria-label="Accueil Open Library">
           <span className="bg-primary text-primary-foreground flex h-9 w-9 items-center justify-center rounded-xl">
-            <Feather size={18} />
+            <LibraryBig size={18} />
           </span>
-          <span className="text-xl font-bold tracking-tight">Plume</span>
+          <span className="text-xl font-bold tracking-tight">Open Library</span>
         </Link>
         <span className="text-muted-foreground hidden text-sm sm:block">Écris des livres, lis-les comme des livres</span>
         <div className="ml-auto flex items-center gap-2.5 text-sm">
