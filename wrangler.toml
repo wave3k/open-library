@@ -2,6 +2,7 @@ name = "open-library"
 compatibility_date = "2026-10-07"
 main = "worker/index.js"
 
+# ---- Production : déploiement UNIQUEMENT sur demande explicite ----
 [[d1_databases]]
 binding = "DB"
 database_name = "plume-db"
@@ -10,3 +11,12 @@ database_id = "34cfc80a-6dc3-4665-9711-6d30f3aa79ca"
 [assets]
 directory = "./dist"
 not_found_handling = "single-page-application"
+
+# ---- Staging : environnement de test (données séparées) ----
+[env.staging]
+name = "open-library-staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "plume-db-staging"
+database_id = "c1a2109a-9abc-4bec-8f30-0481df6330ce"

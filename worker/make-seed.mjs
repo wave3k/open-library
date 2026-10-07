@@ -7,7 +7,7 @@ const esc = (s) => String(s ?? '').replace(/'/g, "''")
 
 // Compte démo propriétaire des livres publics (mot de passe aléatoire, jamais partagé)
 const salt = randomBytes(16).toString('hex')
-const hash = pbkdf2Sync('demo-never-login-' + salt, Buffer.from(salt, 'hex'), 200_000, 32, 'sha256').toString('hex')
+const hash = pbkdf2Sync('demo-never-login-' + salt, Buffer.from(salt, 'hex'), 100_000, 32, 'sha256').toString('hex')
 
 const lines = []
 lines.push(`INSERT OR IGNORE INTO users (id, name, email, password_hash, salt, created_at) VALUES ('user-demo', 'Communauté Plume', 'demo@plume.local', '${hash}', '${salt}', '2026-09-01');`)

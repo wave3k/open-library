@@ -15,7 +15,8 @@ async function pbkdf2(password, saltHex) {
   const salt = new Uint8Array(saltHex.match(/../g).map((h) => parseInt(h, 16)))
   const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits'])
   const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations: 200_000, hash: 'SHA-256' },
+    // Workers limite PBKDF2 à 100 000 itérations max
+    { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
     key,
     256
   )

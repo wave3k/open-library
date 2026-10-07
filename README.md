@@ -22,8 +22,18 @@ npm install
 npm run dev              # front Vite http://localhost:5173 (+ proxy /api)
 npx wrangler dev         # API + front http://localhost:8787
 npm run build
-npx wrangler deploy      # production
 ```
+
+## Environnements (ne jamais balancer direct en prod)
+
+| Étape | Commande | URL / base |
+|-------|----------|------------|
+| Local | `npx wrangler dev` | :8787, D1 locale |
+| Staging | `npx wrangler deploy --env staging` | open-library-staging.workers.dev, `plume-db-staging` |
+| Prod | `npx wrangler deploy` — **uniquement sur feu vert explicite** | open-library.workers.dev, `plume-db` |
+
+Règle : toute modification est testée sur staging d’abord (signup, livre, chapitre, explore).
+La prod ne bouge que quand c’est demandé clairement.
 
 La base D1 se gère avec `npx wrangler d1 execute plume-db --remote --command "..."`.
 Schéma : `worker/schema.sql`. Seed des livres d’exemple : `node worker/make-seed.mjs` puis exécuter `worker/seed.sql`.
