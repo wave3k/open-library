@@ -7,13 +7,30 @@
 ## Fonctionnalités
 
 - 🏠 Landing page de présentation
-- 🔐 Comptes : inscription / connexion (mot de passe hashé PBKDF2, sessions 30 jours)
+- 🔐 Comptes : inscription en 3 étapes (compte, « comment nous as-tu connus ? », genres préférés), connexion (mot de passe PBKDF2, sessions 30 jours)
+- 👤 Profils : `@username` unique + nom d’affichage, bio, avatar (emoji / couleur / photo R2), stats (livres, mots, impressions, lectures, likes, commentaires), catalogue, préférences
+- 🔗 Profil de l’auteur accessible depuis chaque livre
 - 📚 « Mes livres » (privés ou publics) + « Explorer » (livres publics des autres)
-- ✍️ Création de livre : titre, auteur, genre, résumé, couverture 3D façon vrai livre
+- ✍️ Création de livre : éditeur de couverture avancé (5 polices, dispositions, motifs, palette, couleur de texte, emoji, image), tags
+- ❤️ Likes, 💬 commentaires (modération par l’auteur), 📊 stats par livre (impressions, lectures)
 - 📝 Éditeur de chapitres : aperçu, compteur de mots, `Ctrl+S`, brouillon autosauvegardé, réorganisation
-- 📖 Lecture : lettrine, sommaire, thèmes papier / nuit / sépia, progression sauvegardée, navigation clavier
-- 📊 Stats par livre, export `.txt` / `.md`, favoris
-- 💾 Backend Cloudflare Workers + D1 (les anciens livres locaux sont importés à la première connexion)
+- 📖 Lecture : lettrine, sommaire, thèmes papier / nuit / sépia, progression, navigation clavier
+- 💾 Backend Cloudflare Workers + D1 + R2
+
+## Stockage média (R2)
+
+L’upload d’images (avatar, couverture) utilise un bucket R2. Pour l’activer :
+1. Activer R2 dans le dashboard Cloudflare (`R2 Object Storage` → Enable R2)
+2. Créer les buckets `open-library-media` (prod) et `open-library-media-staging`
+3. Décommenter les blocs `[[r2_buckets]]` dans `wrangler.toml`, puis redéployer
+
+## Base de données
+
+- `worker/schema.sql` — schéma initial
+- `worker/schema-v2.sql` — profils, likes, commentaires, tags, compteurs
+- `node worker/make-seed.mjs` puis `worker/seed.sql` — livres d’exemple (optionnel)
+- `worker/remove-demo.sql` — supprime les livres de démo
+
 
 ## Démarrage
 
