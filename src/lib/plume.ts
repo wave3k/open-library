@@ -39,7 +39,10 @@ export const COVERS = [
   { id: 'slate', bg: 'from-slate-700 to-slate-900', emoji: '📖' },
 ]
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+// L'API est appelée en relatif (/api/...) : Next la proxifie côté serveur
+// vers le Worker (rewrite API_UPSTREAM). Pas de variable build-time,
+// donc aucun risque d'URL vide injectée au build.
+const API_URL = ''
 
 const TOKEN_KEY = 'plume-token'
 const USER_KEY = 'plume-user'
