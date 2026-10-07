@@ -8,8 +8,9 @@ binding = "DB"
 database_name = "plume-db"
 database_id = "34cfc80a-6dc3-4665-9711-6d30f3aa79ca"
 
-# Backend API uniquement (le front Next.js est déployé séparément).
-# L'ancien bloc [assets] (dist/) a été retiré avec la migration Next.js.
+# [[r2_buckets]]
+# binding = "MEDIA"
+# bucket_name = "open-library-media"
 
 # ---- Staging : environnement de test (données séparées) ----
 [env.staging]
@@ -19,3 +20,7 @@ name = "open-library-staging"
 binding = "DB"
 database_name = "plume-db-staging"
 database_id = "c1a2109a-9abc-4bec-8f30-0481df6330ce"
+
+# [[env.staging.r2_buckets]]
+# binding = "MEDIA"
+# bucket_name = "open-library-media-staging"

@@ -1,9 +1,24 @@
-import { hashPassword, verifyPassword, publicUser, randomHex, sha256Hex, SESSION_DAYS } from './auth.js'
+import {
+  hashPassword,
+  verifyPassword,
+  publicProfile,
+  authorRef,
+  randomHex,
+  sha256Hex,
+  slugUsername,
+  SESSION_DAYS,
+} from './auth.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+const USERNAME_RE = /^[a-z0-9_]{3,24}$/
+const GENRES = ['Fantastique', 'Romance', 'Science-Fiction', 'Policier', 'Aventure', 'Horreur', 'Poésie']
+const COVERS = ['indigo', 'emerald', 'rose', 'sky', 'amber', 'slate']
+const COVER_FONTS = ['serif', 'sans', 'mono', 'display', 'hand']
+const COVER_PATTERNS = ['none', 'stripes', 'dots', 'grid', 'waves']
+const COVER_LAYOUTS = ['classic', 'centered', 'minimal', 'band']
+const REFERRALS = ['youtube', 'x', 'search', 'ia', 'friend', 'tiktok', 'instagram', 'other']
 
 // Le front Next.js (dev local + Vercel) appelle l'API en cross-origin.
-// Pas de cookies (auth Bearer), donc '*' suffit.
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -23,6 +38,24 @@ async function readJson(req) {
   }
 }
 
+function parseArr(v, fallback = []) {
+  try {
+    const a = JSON.parse(v ?? '[]')
+    return Array.isArray(a) ? a : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function parseObj(v, fallback = {}) {
+  try {
+    const o = JSON.parse(v ?? '{}')
+    return o && typeof o === 'object' && !Array.isArray(o) ? o : fallback
+  } catch {
+    return fallback
+  }
+}
+
 async function currentUser(db, req) {
   const auth = req.headers.get('Authorization') || ''
   const m = auth.match(/^Bearer\s+(.+)$/i)
@@ -30,13 +63,12 @@ async function currentUser(db, req) {
   const tokenHash = await sha256Hex(m[1].trim())
   const row = await db
     .prepare(
-      `SELECT u.id, u.name, u.email, u.created_at FROM sessions s
-       JOIN users u ON u.id = s.user_id
+      `SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id
        WHERE s.token_hash = ? AND s.expires_at > ?`
     )
     .bind(tokenHash, Date.now())
     .first()
-  return publicUser(row)
+  return row || null
 }
 
 async function issueSession(db, userId) {
@@ -50,43 +82,74 @@ async function issueSession(db, userId) {
   return token
 }
 
-async function loadBook(db, id, withOwner = true) {
-  const book = await db
-    .prepare(
-      `SELECT b.*, u.name AS owner_name FROM books b
-       LEFT JOIN users u ON u.id = b.owner_id WHERE b.id = ?`
-    )
-    .bind(id)
-    .first()
+function cleanCoverStyle(raw) {
+  const o = raw && typeof raw === 'object' ? raw : {}
+  const pick = (v, list, def) => (list.includes(v) ? v : def)
+  return {
+    preset: pick(o.preset, COVERS, 'indigo'),
+    font: pick(o.font, COVER_FONTS, 'serif'),
+    pattern: pick(o.pattern, COVER_PATTERNS, 'none'),
+    layout: pick(o.layout, COVER_LAYOUTS, 'classic'),
+    emoji: String(o.emoji ?? '').slice(0, 8),
+    textColor: /^#[0-9a-fA-F]{3,8}$/.test(o.textColor ?? '') ? o.textColor : '#ffffff',
+    image: /^https?:\/\//.test(o.image ?? '') || String(o.image ?? '').startsWith('/api/media/') ? String(o.image).slice(0, 500) : '',
+  }
+}
+
+function cleanTags(raw) {
+  if (!Array.isArray(raw)) return []
+  return [...new Set(raw.map((t) => String(t).trim().slice(0, 20)).filter(Boolean))].slice(0, 5)
+}
+
+function serializeBook(book, chapters, extra = {}) {
+  return {
+    id: book.id,
+    owner_id: book.owner_id,
+    owner_name: book.owner_display_name || book.owner_name || 'Anonyme',
+    author: book.author,
+    title: book.title,
+    genre: book.genre,
+    description: book.description || '',
+    cover: book.cover,
+    cover_style: parseObj(book.cover_style, {}),
+    tags: parseArr(book.tags, []),
+    is_public: book.is_public === 1,
+    created_at: book.created_at,
+    updated_at: book.updated_at,
+    views: book.views || 0,
+    impressions: book.impressions || 0,
+    likes: extra.likes ?? 0,
+    comments: extra.comments ?? 0,
+    owner: authorRef(book),
+    chapters: (chapters || []).map((c) => ({ id: c.id, title: c.title, content: c.content || '' })),
+  }
+}
+
+const BOOK_SELECT = `SELECT b.*, u.username AS owner_username, u.display_name AS owner_display_name,
+  u.avatar_emoji AS owner_avatar_emoji, u.avatar_color AS owner_avatar_color, u.avatar_image AS owner_avatar_image
+  FROM books b LEFT JOIN users u ON u.id = b.owner_id`
+
+async function bookCounts(db, bookId) {
+  const [l, c] = await Promise.all([
+    db.prepare('SELECT COUNT(*) AS n FROM likes WHERE book_id = ?').bind(bookId).first(),
+    db.prepare('SELECT COUNT(*) AS n FROM comments WHERE book_id = ?').bind(bookId).first(),
+  ])
+  return { likes: l?.n ?? 0, comments: c?.n ?? 0 }
+}
+
+async function loadBook(db, id) {
+  const book = await db.prepare(`${BOOK_SELECT} WHERE b.id = ?`).bind(id).first()
   if (!book) return null
   const { results } = await db
     .prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY position ASC, rowid ASC')
     .bind(id)
     .all()
-  return serializeBook(book, results || []);
-}
-
-function serializeBook(book, chapters) {
-  return {
-    id: book.id,
-    owner_id: book.owner_id,
-    owner_name: book.owner_name || 'Anonyme',
-    title: book.title,
-    author: book.author,
-    genre: book.genre,
-    description: book.description || '',
-    cover: book.cover,
-    is_public: book.is_public === 1,
-    created_at: book.created_at,
-    updated_at: book.updated_at,
-    chapters: (chapters || []).map((c) => ({ id: c.id, title: c.title, content: c.content || '' })),
-  }
+  const counts = await bookCounts(db, id)
+  return serializeBook(book, results || [], counts)
 }
 
 function cleanBookInput(body, partial = false) {
   const out = {}
-  const GENRES = ['Fantastique', 'Romance', 'Science-Fiction', 'Policier', 'Aventure', 'Horreur', 'Poésie']
-  const COVERS = ['indigo', 'emerald', 'rose', 'sky', 'amber', 'slate']
   if (body.title !== undefined || !partial) out.title = String(body.title ?? '').trim().slice(0, 80)
   if (body.author !== undefined || !partial) out.author = String(body.author ?? '').trim().slice(0, 40)
   if (body.genre !== undefined || !partial) {
@@ -99,9 +162,41 @@ function cleanBookInput(body, partial = false) {
     const c = String(body.cover ?? 'indigo')
     out.cover = COVERS.includes(c) ? c : 'indigo'
   }
+  if (body.cover_style !== undefined || !partial) out.cover_style = JSON.stringify(cleanCoverStyle(body.cover_style))
+  if (body.tags !== undefined) out.tags = JSON.stringify(cleanTags(body.tags))
   if (body.is_public !== undefined) out.is_public = body.is_public === true || body.is_public === 1 ? 1 : 0
   else if (!partial) out.is_public = 1
   return out
+}
+
+async function profileStats(db, userId) {
+  const books = await db
+    .prepare('SELECT COUNT(*) AS n, COALESCE(SUM(views),0) AS views, COALESCE(SUM(impressions),0) AS impressions FROM books WHERE owner_id = ?')
+    .bind(userId)
+    .first()
+  const words = await db
+    .prepare(
+      `SELECT COALESCE(SUM(LENGTH(c.content) - LENGTH(REPLACE(c.content,' ','')) + 1),0) AS w
+       FROM chapters c JOIN books b ON b.id = c.book_id WHERE b.owner_id = ? AND LENGTH(TRIM(c.content)) > 0`
+    )
+    .bind(userId)
+    .first()
+  const likes = await db
+    .prepare('SELECT COUNT(*) AS n FROM likes l JOIN books b ON b.id = l.book_id WHERE b.owner_id = ?')
+    .bind(userId)
+    .first()
+  const comments = await db
+    .prepare('SELECT COUNT(*) AS n FROM comments c JOIN books b ON b.id = c.book_id WHERE b.owner_id = ?')
+    .bind(userId)
+    .first()
+  return {
+    books: books?.n ?? 0,
+    words: words?.w ?? 0,
+    views: books?.views ?? 0,
+    impressions: books?.impressions ?? 0,
+    likes: likes?.n ?? 0,
+    comments: comments?.n ?? 0,
+  }
 }
 
 export default {
@@ -114,6 +209,19 @@ export default {
       return new Response(null, { status: 204, headers: CORS_HEADERS })
     }
 
+    // ---- Media (R2) ----
+    if (path.startsWith('/api/media/') && req.method === 'GET') {
+      if (!env.MEDIA) return json({ error: 'Stockage média indisponible.' }, 503)
+      const key = decodeURIComponent(path.slice('/api/media/'.length))
+      const obj = await env.MEDIA.get(key)
+      if (!obj) return json({ error: 'Introuvable.' }, 404)
+      const headers = new Headers(CORS_HEADERS)
+      obj.writeHttpMetadata(headers)
+      headers.set('etag', obj.httpEtag)
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+      return new Response(obj.body, { headers })
+    }
+
     if (!path.startsWith('/api/')) {
       return json({ error: 'Not found' }, 404)
     }
@@ -122,23 +230,42 @@ export default {
       // ---------- AUTH ----------
       if (req.method === 'POST' && path === '/api/auth/signup') {
         const body = (await readJson(req)) || {}
-        const name = String(body.name ?? '').trim().slice(0, 40)
+        const name = String(body.display_name ?? body.name ?? '').trim().slice(0, 40)
         const email = String(body.email ?? '').trim().toLowerCase()
         const password = String(body.password ?? '')
-        if (name.length < 2) return json({ error: 'Indique ton nom (2 caractères minimum).' }, 400)
+        let username = String(body.username ?? '').trim().toLowerCase()
+        const referral = REFERRALS.includes(String(body.referral_source)) ? String(body.referral_source) : 'other'
+        const preferences = cleanTags(body.preferences).filter((g) => GENRES.includes(g)).slice(0, 7)
+
+        if (name.length < 2) return json({ error: 'Indique ton nom d’affichage (2 caractères minimum).' }, 400)
         if (!EMAIL_RE.test(email)) return json({ error: 'Adresse e-mail invalide.' }, 400)
         if (password.length < 8) return json({ error: 'Mot de passe : 8 caractères minimum.' }, 400)
+        if (username && !USERNAME_RE.test(username)) {
+          return json({ error: 'Nom d’utilisateur : 3 à 24 caractères, lettres minuscules, chiffres et _ uniquement.' }, 400)
+        }
         const exists = await db.prepare('SELECT id FROM users WHERE email = ?').bind(email).first()
         if (exists) return json({ error: 'Un compte existe déjà avec cet e-mail.' }, 409)
+        if (!username) {
+          username = slugUsername(name || email.split('@')[0])
+        }
+        // garantir l'unicité
+        for (let i = 0; i < 5; i++) {
+          const taken = await db.prepare('SELECT id FROM users WHERE username = ?').bind(username).first()
+          if (!taken) break
+          username = slugUsername(name || email.split('@')[0])
+        }
         const { salt, hash } = await hashPassword(password)
         const id = crypto.randomUUID()
         const now = new Date().toISOString()
         await db
-          .prepare('INSERT INTO users (id, name, email, password_hash, salt, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-          .bind(id, name, email, hash, salt, now)
+          .prepare(
+            `INSERT INTO users (id, name, email, password_hash, salt, created_at, username, display_name, referral_source, preferences)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+          .bind(id, name, email, hash, salt, now, username, name, referral, JSON.stringify(preferences))
           .run()
         const token = await issueSession(db, id)
-        return json({ user: { id, name, email, created_at: now }, token }, 201)
+        return json({ user: { id, username, display_name: name, name, email, created_at: now }, token }, 201)
       }
 
       if (req.method === 'POST' && path === '/api/auth/login') {
@@ -150,7 +277,7 @@ export default {
           return json({ error: 'E-mail ou mot de passe incorrect.' }, 401)
         }
         const token = await issueSession(db, row.id)
-        return json({ user: publicUser(row), token })
+        return json({ user: publicProfile(row, { self: true }), token })
       }
 
       if (req.method === 'POST' && path === '/api/auth/logout') {
@@ -162,14 +289,104 @@ export default {
         return json({ ok: true })
       }
 
-      const me = await currentUser(db, req)
+      // Disponibilité d'un username (public, pour le formulaire)
+      if (req.method === 'GET' && path === '/api/username-available') {
+        const u = String(url.searchParams.get('username') ?? '').trim().toLowerCase()
+        if (!USERNAME_RE.test(u)) return json({ available: false, reason: 'format' })
+        const taken = await db.prepare('SELECT id FROM users WHERE username = ?').bind(u).first()
+        return json({ available: !taken })
+      }
+
+      const meRow = await currentUser(db, req)
+      const me = meRow ? publicProfile(meRow, { self: true }) : null
 
       if (req.method === 'GET' && path === '/api/me') {
         if (!me) return json({ error: 'Non connecté.' }, 401)
-        return json({ user: me })
+        const stats = await profileStats(db, me.id)
+        return json({ user: me, stats })
+      }
+
+      if (req.method === 'PUT' && path === '/api/profile') {
+        if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
+        const body = (await readJson(req)) || {}
+        const sets = []
+        const vals = []
+        if (body.display_name !== undefined) {
+          const dn = String(body.display_name).trim().slice(0, 40)
+          if (dn.length < 2) return json({ error: 'Le nom d’affichage doit faire au moins 2 caractères.' }, 400)
+          sets.push('display_name = ?', 'name = ?')
+          vals.push(dn, dn)
+        }
+        if (body.bio !== undefined) {
+          sets.push('bio = ?')
+          vals.push(String(body.bio).trim().slice(0, 300))
+        }
+        if (body.avatar_emoji !== undefined) {
+          sets.push('avatar_emoji = ?')
+          vals.push(String(body.avatar_emoji).slice(0, 8))
+        }
+        if (body.avatar_color !== undefined) {
+          sets.push('avatar_color = ?')
+          vals.push(COVERS.includes(String(body.avatar_color)) ? String(body.avatar_color) : 'amber')
+        }
+        if (body.avatar_image !== undefined) {
+          const img = String(body.avatar_image)
+          sets.push('avatar_image = ?')
+          vals.push(/^(\/api\/media\/|https?:\/\/)/.test(img) ? img.slice(0, 500) : '')
+        }
+        if (body.preferences !== undefined) {
+          sets.push('preferences = ?')
+          vals.push(JSON.stringify(cleanTags(body.preferences).filter((g) => GENRES.includes(g)).slice(0, 7)))
+        }
+        if (body.username !== undefined) {
+          const u = String(body.username).trim().toLowerCase()
+          if (!USERNAME_RE.test(u)) return json({ error: 'Nom d’utilisateur invalide.' }, 400)
+          if (u !== me.username) {
+            const taken = await db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').bind(u, me.id).first()
+            if (taken) return json({ error: 'Ce nom d’utilisateur est déjà pris.' }, 409)
+            sets.push('username = ?')
+            vals.push(u)
+          }
+        }
+        if (!sets.length) return json({ error: 'Rien à mettre à jour.' }, 400)
+        await db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).bind(...vals, me.id).run()
+        const updated = await db.prepare('SELECT * FROM users WHERE id = ?').bind(me.id).first()
+        return json({ user: publicProfile(updated, { self: true }), stats: await profileStats(db, me.id) })
+      }
+
+      // ---------- PROFILS PUBLICS ----------
+      if (req.method === 'GET' && path.startsWith('/api/users/')) {
+        const handle = decodeURIComponent(path.slice('/api/users/'.length))
+        const row = await db.prepare('SELECT * FROM users WHERE username = ? OR id = ?').bind(handle, handle).first()
+        if (!row) return json({ error: 'Profil introuvable.' }, 404)
+        const isSelf = me && me.id === row.id
+        const stats = await profileStats(db, row.id)
+        const res = await db
+          .prepare(`${BOOK_SELECT} WHERE b.owner_id = ? ${isSelf ? '' : 'AND b.is_public = 1'} ORDER BY b.updated_at DESC`)
+          .bind(row.id)
+          .all()
+        const books = []
+        for (const b of res.results || []) {
+          const ch = await db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY position ASC, rowid ASC').bind(b.id).all()
+          books.push(serializeBook(b, ch.results || [], await bookCounts(db, b.id)))
+        }
+        return json({ user: publicProfile(row, { self: !!isSelf }), stats, books })
       }
 
       if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
+
+      // ---------- UPLOAD (R2) ----------
+      if (req.method === 'POST' && path === '/api/upload') {
+        if (!env.MEDIA) return json({ error: 'Stockage média indisponible.' }, 503)
+        const ct = req.headers.get('content-type') || ''
+        if (!/^image\/(png|jpe?g|webp|gif)$/.test(ct)) return json({ error: 'Format d’image non supporté (png, jpg, webp, gif).' }, 400)
+        const buf = await req.arrayBuffer()
+        if (buf.byteLength > 4 * 1024 * 1024) return json({ error: 'Image trop lourde (4 Mo max).' }, 400)
+        const ext = ct.split('/')[1].replace('jpeg', 'jpg')
+        const key = `u/${me.id}/${Date.now()}-${randomHex(4)}.${ext}`
+        await env.MEDIA.put(key, buf, { httpMetadata: { contentType: ct } })
+        return json({ url: `/api/media/${key}` }, 201)
+      }
 
       // ---------- BOOKS ----------
       if (req.method === 'GET' && path === '/api/books') {
@@ -177,33 +394,21 @@ export default {
         let rows
         if (scope === 'explore') {
           const res = await db
-            .prepare(
-              `SELECT b.*, u.name AS owner_name FROM books b
-               LEFT JOIN users u ON u.id = b.owner_id
-               WHERE b.is_public = 1 AND b.owner_id != ?
-               ORDER BY b.updated_at DESC LIMIT 100`
-            )
+            .prepare(`${BOOK_SELECT} WHERE b.is_public = 1 AND b.owner_id != ? ORDER BY b.updated_at DESC LIMIT 100`)
             .bind(me.id)
             .all()
           rows = res.results || []
         } else {
           const res = await db
-            .prepare(
-              `SELECT b.*, u.name AS owner_name FROM books b
-               LEFT JOIN users u ON u.id = b.owner_id
-               WHERE b.owner_id = ? ORDER BY b.updated_at DESC`
-            )
+            .prepare(`${BOOK_SELECT} WHERE b.owner_id = ? ORDER BY b.updated_at DESC`)
             .bind(me.id)
             .all()
           rows = res.results || []
         }
         const out = []
         for (const b of rows) {
-          const ch = await db
-            .prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY position ASC, rowid ASC')
-            .bind(b.id)
-            .all()
-          out.push(serializeBook(b, ch.results || []))
+          const ch = await db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY position ASC, rowid ASC').bind(b.id).all()
+          out.push(serializeBook(b, ch.results || [], await bookCounts(db, b.id)))
         }
         return json({ books: out })
       }
@@ -217,9 +422,10 @@ export default {
         const now = new Date().toISOString()
         await db
           .prepare(
-            'INSERT INTO books (id, owner_id, title, author, genre, description, cover, is_public, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            `INSERT INTO books (id, owner_id, title, author, genre, description, cover, cover_style, tags, is_public, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
-          .bind(id, me.id, data.title, data.author, data.genre, data.description, data.cover, data.is_public, now, now)
+          .bind(id, me.id, data.title, data.author, data.genre, data.description, data.cover, data.cover_style ?? '{}', data.tags ?? '[]', data.is_public, now, now)
           .run()
         return json({ book: await loadBook(db, id) }, 201)
       }
@@ -236,9 +442,10 @@ export default {
           stmts.push(
             db
               .prepare(
-                'INSERT INTO books (id, owner_id, title, author, genre, description, cover, is_public, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                `INSERT INTO books (id, owner_id, title, author, genre, description, cover, cover_style, tags, is_public, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
               )
-              .bind(bookId, me.id, data.title, data.author || me.name, data.genre, data.description, data.cover, data.is_public, now, now)
+              .bind(bookId, me.id, data.title, data.author || me.name, data.genre, data.description, data.cover, data.cover_style ?? '{}', data.tags ?? '[]', data.is_public, now, now)
           )
           const chs = Array.isArray(item.chapters) ? item.chapters.slice(0, 200) : []
           chs.forEach((c, i) => {
@@ -257,6 +464,83 @@ export default {
       if (bookMatch) {
         const bookId = bookMatch[1]
         const rest = bookMatch[2] || ''
+
+        // ---- Interactions publiques (likes, commentaires, stats) ----
+        if (rest === '/like') {
+          if (req.method === 'POST') {
+            await db
+              .prepare('INSERT OR IGNORE INTO likes (book_id, user_id, created_at) VALUES (?, ?, ?)')
+              .bind(bookId, me.id, new Date().toISOString())
+              .run()
+          } else if (req.method === 'DELETE') {
+            await db.prepare('DELETE FROM likes WHERE book_id = ? AND user_id = ?').bind(bookId, me.id).run()
+          }
+          const counts = await bookCounts(db, bookId)
+          const liked = await db.prepare('SELECT 1 FROM likes WHERE book_id = ? AND user_id = ?').bind(bookId, me.id).first()
+          return json({ likes: counts.likes, liked: !!liked })
+        }
+
+        if (rest === '/stat') {
+          if (req.method === 'POST') {
+            const body = (await readJson(req)) || {}
+            const type = body.type === 'view' ? 'views' : 'impressions'
+            await db.prepare(`UPDATE books SET ${type} = ${type} + 1 WHERE id = ?`).bind(bookId).run()
+          }
+          return json({ ok: true })
+        }
+
+        if (rest === '/comments') {
+          if (req.method === 'GET') {
+            const res = await db
+              .prepare(
+                `SELECT c.id, c.content, c.created_at, c.user_id,
+                        u.username, u.display_name, u.name, u.avatar_emoji, u.avatar_color, u.avatar_image
+                 FROM comments c JOIN users u ON u.id = c.user_id
+                 WHERE c.book_id = ? ORDER BY c.created_at DESC LIMIT 200`
+              )
+              .bind(bookId)
+              .all()
+            const comments = (res.results || []).map((c) => ({
+              id: c.id,
+              content: c.content,
+              created_at: c.created_at,
+              user_id: c.user_id,
+              author: {
+                id: c.user_id,
+                username: c.username,
+                display_name: c.display_name || c.name || 'Anonyme',
+                avatar_emoji: c.avatar_emoji || '',
+                avatar_color: c.avatar_color || 'amber',
+                avatar_image: c.avatar_image || '',
+              },
+            }))
+            return json({ comments })
+          }
+          if (req.method === 'POST') {
+            const body = (await readJson(req)) || {}
+            const content = String(body.content ?? '').trim().slice(0, 1000)
+            if (content.length < 1) return json({ error: 'Le commentaire est vide.' }, 400)
+            const id = crypto.randomUUID()
+            await db
+              .prepare('INSERT INTO comments (id, book_id, user_id, content, created_at) VALUES (?, ?, ?, ?, ?)')
+              .bind(id, bookId, me.id, content, new Date().toISOString())
+              .run()
+            return json({ ok: true, id }, 201)
+          }
+        }
+
+        const commMatch = rest.match(/^\/comments\/([^/]+)$/)
+        if (commMatch && req.method === 'DELETE') {
+          const cid = commMatch[1]
+          const row = await db.prepare('SELECT user_id FROM comments WHERE id = ? AND book_id = ?').bind(cid, bookId).first()
+          if (!row) return json({ error: 'Commentaire introuvable.' }, 404)
+          const book = await db.prepare('SELECT owner_id FROM books WHERE id = ?').bind(bookId).first()
+          if (row.user_id !== me.id && book?.owner_id !== me.id) return json({ error: 'Non autorisé.' }, 403)
+          await db.prepare('DELETE FROM comments WHERE id = ?').bind(cid).run()
+          return json({ ok: true })
+        }
+
+        // ---- Gestion propriétaire ----
         const owned = await db.prepare('SELECT * FROM books WHERE id = ? AND owner_id = ?').bind(bookId, me.id).first()
         if (!owned) {
           const any = await db.prepare('SELECT id FROM books WHERE id = ?').bind(bookId).first()
@@ -293,11 +577,10 @@ export default {
           }
           const max = await db.prepare('SELECT MAX(position) AS m FROM chapters WHERE book_id = ?').bind(bookId).first()
           const pos = (max?.m ?? -1) + 1
-          const chId = crypto.randomUUID()
           const now = new Date().toISOString()
           await db
             .prepare('INSERT INTO chapters (id, book_id, title, content, position, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
-            .bind(chId, bookId, title, content, pos, now)
+            .bind(crypto.randomUUID(), bookId, title, content, pos, now)
             .run()
           await db.prepare('UPDATE books SET updated_at = ? WHERE id = ?').bind(now, bookId).run()
           return json({ book: await loadBook(db, bookId) }, 201)

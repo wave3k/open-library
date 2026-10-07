@@ -1,16 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, BookOpen, PenLine, Pencil, Trash2, Plus,
-  Star, Play, ChevronUp, ChevronDown, Download, FileText, Globe, Lock, Loader2,
+  Star, Play, ChevronUp, ChevronDown, Download, FileText, Globe, Lock,
+  Loader2, Heart, Eye, MessageSquare, TrendingUp,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { BookCover } from '@/components/book-cover'
+import { Avatar } from '@/components/avatar'
 import { BookFormDialog } from '@/components/book-form-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { CommentsSection } from '@/components/comments-section'
 import { usePlume } from '@/components/plume-provider'
 import { BooksAPI, bookWords, countWords, readingMinutes, type BookInput, type Chapter } from '@/lib/plume'
 import { exportBook } from '@/lib/export'
@@ -19,15 +22,23 @@ export default function BookDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const {
-    user, mine, explore, favs, progress,
-    toggleFav, applyBook, dropBook, markProgress, loadingBooks,
+    user, mine, explore, favs, progress, loadingBooks,
+    toggleFav, applyBook, dropBook, markProgress,
   } = usePlume()
   const [showEdit, setShowEdit] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [toDeleteBook, setToDeleteBook] = useState(false)
   const [toDeleteCh, setToDeleteCh] = useState<Chapter | null>(null)
+  const [likeState, setLikeState] = useState<{ likes: number; liked: boolean } | null>(null)
+  const [commentCount, setCommentCount] = useState<number | null>(null)
 
   const book = [...mine, ...explore].find((b) => b.id === id) ?? null
+
+  // Beacon d'impression (une fois par visite)
+  useEffect(() => {
+    if (book) BooksAPI.stat(book.id, 'impression')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [book?.id])
 
   if (!user) {
     return (
@@ -37,7 +48,6 @@ export default function BookDetailPage() {
       </div>
     )
   }
-  // Livres pas encore chargés : ne pas annoncer « introuvable » à tort
   if (!book && loadingBooks) {
     return (
       <div className="flex items-center justify-center gap-2 py-20 text-stone-500">
@@ -59,12 +69,27 @@ export default function BookDetailPage() {
   const chapters = book.chapters ?? []
   const maxWords = Math.max(1, ...chapters.map((c) => countWords(c.content)))
   const lastIdx = chapters.findIndex((c) => c.id === progress[book.id])
+  const likes = likeState?.likes ?? book.likes
+  const liked = likeState?.liked ?? false
+  const comments = commentCount ?? book.comments
 
   const readChapter = (chId: string | undefined) => {
     const target = chId ?? chapters[0]?.id
     if (!target) return
     markProgress(book.id, target)
     router.push(`/livres/${book.id}/lire/${target}`)
+  }
+
+  const toggleLike = async () => {
+    const next = !liked
+    setLikeState({ likes: likes + (next ? 1 : -1), liked: next })
+    try {
+      const res = next ? await BooksAPI.like(book.id) : await BooksAPI.unlike(book.id)
+      setLikeState(res)
+    } catch (err) {
+      setLikeState({ likes, liked })
+      toast.error(err instanceof Error ? err.message : 'Action impossible.')
+    }
   }
 
   const saveEdit = async (data: BookInput) => {
@@ -111,7 +136,7 @@ export default function BookDetailPage() {
 
       <div className="book3d-lift bg-card flex flex-col gap-6 rounded-2xl border p-6 sm:flex-row">
         <div className="mx-auto py-2 pl-2 sm:mx-0">
-          <BookCover cover={book.cover} title={book.title} author={book.author} genre={book.genre} size="lg" />
+          <BookCover book={book} title={book.title} author={book.author} genre={book.genre} size="lg" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -147,16 +172,40 @@ export default function BookDetailPage() {
               {isFav ? 'Favori' : 'Ajouter aux favoris'}
             </button>
           </div>
+
           <h2 className="mt-2 break-words text-2xl font-bold">{book.title}</h2>
-          <p className="text-stone-500">
-            par {book.author}
-            {book.owner_name && !isOwner && <span> · publié par {book.owner_name}</span>}
-          </p>
+
+          {/* Auteur → profil */}
+          <button
+            onClick={() => router.push(`/u/${book.owner.username}`)}
+            className="mt-2 flex items-center gap-2.5 rounded-full pr-3 transition hover:bg-stone-100"
+          >
+            <Avatar user={book.owner} size={36} />
+            <span className="text-left">
+              <span className="block text-sm font-semibold">{book.author}</span>
+              <span className="text-muted-foreground block text-xs">@{book.owner.username} · voir le profil</span>
+            </span>
+          </button>
+
           <p className="mt-3 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-stone-600">{book.description || 'Aucune description.'}</p>
-          <p className="mt-2 text-xs text-stone-400">
-            {chapters.length} chapitre(s) · {bookWords(book).toLocaleString('fr-FR')} mots · ~{readingMinutes(book)} min de lecture
-            {lastIdx >= 0 && <span> · Reprise au chapitre {lastIdx + 1}</span>}
-          </p>
+
+          {/* Stats */}
+          <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-stone-500">
+            <span className="inline-flex items-center gap-1"><TrendingUp size={13} /> {book.impressions.toLocaleString('fr-FR')} impressions</span>
+            <span className="inline-flex items-center gap-1"><Eye size={13} /> {book.views.toLocaleString('fr-FR')} lectures</span>
+            <span className="inline-flex items-center gap-1"><Heart size={13} /> {likes.toLocaleString('fr-FR')} likes</span>
+            <span className="inline-flex items-center gap-1"><MessageSquare size={13} /> {comments.toLocaleString('fr-FR')} commentaires</span>
+            <span>· {chapters.length} chapitre(s) · {bookWords(book).toLocaleString('fr-FR')} mots · ~{readingMinutes(book)} min</span>
+          </div>
+
+          {/* Tags */}
+          {book.tags?.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {book.tags.map((t) => (
+                <span key={t} className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-600">#{t}</span>
+              ))}
+            </div>
+          )}
 
           {chapters.length > 0 && (
             <div className="mt-4 max-w-xl rounded-xl bg-stone-50 p-3">
@@ -188,6 +237,9 @@ export default function BookDetailPage() {
                 <BookOpen size={16} /> Lire comme un livre
               </Button>
             )}
+            <Button variant={liked ? 'secondary' : 'outline'} onClick={toggleLike} aria-pressed={liked}>
+              <Heart size={15} fill={liked ? 'currentColor' : 'none'} className={liked ? 'text-red-500' : ''} /> {liked ? 'Aimé' : 'J’aime'}
+            </Button>
             {isOwner && (
               <>
                 <Button onClick={() => router.push(`/livres/${book.id}/ecrire`)}>
@@ -275,6 +327,8 @@ export default function BookDetailPage() {
           ))}
         </ol>
       </div>
+
+      <CommentsSection bookId={book.id} bookOwnerId={book.owner_id} onCountChange={setCommentCount} />
 
       <BookFormDialog open={showEdit} initial={book} onClose={() => setShowEdit(false)} onSave={saveEdit} />
 

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, ChevronLeft, ChevronRight, List, Type, Moon, Sun, BookOpen, Loader2 } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { usePlume } from '@/components/plume-provider'
+import { BooksAPI } from '@/lib/plume'
 
 const THEMES = {
   papier: 'bg-[#f6f1e5] text-stone-900',
@@ -62,7 +63,10 @@ export default function ReaderPage() {
     if (el) el.scrollTop = 0
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setProgress(0)
-    if (book && chapter) markProgress(book.id, chapter.id)
+    if (book && chapter) {
+      markProgress(book.id, chapter.id)
+      BooksAPI.stat(book.id, 'view')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapterId, id])
 

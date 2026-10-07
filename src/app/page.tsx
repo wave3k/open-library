@@ -48,13 +48,13 @@ export default function LandingPage() {
 
         <div className="book3d-lift from-card to-muted flex items-end justify-center gap-5 rounded-3xl border bg-gradient-to-b p-8">
           <div className="mb-6 hidden sm:block">
-            <BookCover cover="sky" title="Orbital" author="Karim Haddad" genre="Science-Fiction" size="md" />
+            <BookCover book={{ cover: 'sky' }} title="Orbital" author="Karim Haddad" genre="Science-Fiction" size="md" />
           </div>
           <div className="mb-0">
-            <BookCover cover="indigo" title="La Cité des Brumes" author="Léa Moreau" genre="Fantastique" size="lg" />
+            <BookCover book={{ cover: 'indigo' }} title="La Cité des Brumes" author="Léa Moreau" genre="Fantastique" size="lg" />
           </div>
           <div className="mb-6 hidden sm:block">
-            <BookCover cover="rose" title="Lettres à demain" author="Camille Petit" genre="Romance" size="md" />
+            <BookCover book={{ cover: 'rose' }} title="Lettres à demain" author="Camille Petit" genre="Romance" size="md" />
           </div>
         </div>
       </section>

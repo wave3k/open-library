@@ -34,9 +34,56 @@ export async function verifyPassword(password, salt, expected) {
   return hash === expected
 }
 
-export function publicUser(row) {
+function parseJsonArr(v, fallback = []) {
+  try {
+    const a = JSON.parse(v ?? '[]')
+    return Array.isArray(a) ? a : fallback
+  } catch {
+    return fallback
+  }
+}
+
+/** Profil public d'un utilisateur (jamais l'e-mail pour un tiers). */
+export function publicProfile(row, { self = false } = {}) {
   if (!row) return null
-  return { id: row.id, name: row.name, email: row.email, created_at: row.created_at }
+  return {
+    id: row.id,
+    username: row.username || row.id,
+    display_name: row.display_name || row.name || 'Anonyme',
+    name: row.display_name || row.name || 'Anonyme',
+    bio: row.bio || '',
+    avatar_emoji: row.avatar_emoji || '',
+    avatar_color: row.avatar_color || 'amber',
+    avatar_image: row.avatar_image || '',
+    preferences: parseJsonArr(row.preferences),
+    created_at: row.created_at,
+    ...(self ? { email: row.email, referral_source: row.referral_source || '' } : {}),
+  }
+}
+
+/** Identité minimale de l'auteur, embarquée dans un livre. */
+export function authorRef(row) {
+  if (!row) return null
+  return {
+    id: row.id,
+    username: row.owner_username || row.id,
+    display_name: row.owner_display_name || row.name || 'Anonyme',
+    avatar_emoji: row.owner_avatar_emoji || '',
+    avatar_color: row.owner_avatar_color || 'amber',
+    avatar_image: row.owner_avatar_image || '',
+  }
 }
 
 export const SESSION_DAYS = 30
+
+/** Génère un username unique à partir d'un nom. */
+export function slugUsername(base, rand = randomHex(3)) {
+  const clean = String(base || 'auteur')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9_]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 24)
+  return `${clean || 'auteur'}_${rand.slice(0, 4)}`
+}

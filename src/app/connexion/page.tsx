@@ -1,8 +1,5 @@
-'use client'
-
-import { LoginForm, useRedirectIfLogged } from '@/components/auth-forms'
+import { LoginPage } from '@/components/auth-forms'
 
 export default function ConnexionPage() {
-  useRedirectIfLogged()
-  return <LoginForm />
+  return <LoginPage />
 }

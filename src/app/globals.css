@@ -207,3 +207,12 @@
     transition: none;
   }
 }
+
+/* Polices de couverture */
+.cover-font-display {
+  font-family: "Trebuchet MS", "Segoe UI Semibold", system-ui, sans-serif;
+  letter-spacing: 0.02em;
+}
+.cover-font-hand {
+  font-family: "Segoe Script", "Bradley Hand", "Comic Sans MS", cursive;
+}

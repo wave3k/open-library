@@ -202,7 +202,7 @@ export default function BibliothequePage() {
                   onClick={() => router.push(`/livres/${b.id}`)}
                 >
                   <div className="py-1 pl-1">
-                    <BookCover cover={b.cover} title={b.title} author={b.author} genre={b.genre} size="md" />
+                    <BookCover book={b} title={b.title} author={b.author} genre={b.genre} size="md" />
                   </div>
                   <div className="min-w-0 flex-1 py-0.5">
                     <div className="flex items-center gap-1.5">

@@ -6,14 +6,17 @@ import { toast } from 'sonner'
 import {
   AuthAPI,
   BooksAPI,
+  ProfileAPI,
   clearSession,
   favKey,
   getStoredUser,
   progressKey,
   readLocal,
   setSession,
+  updateStoredUser,
   writeLocal,
   type Book,
+  type ProfileStats,
   type User,
 } from '@/lib/plume'
 
@@ -22,6 +25,7 @@ const OLD_KEY = 'plume-books-v1'
 
 interface PlumeCtx {
   user: User | null
+  stats: ProfileStats | null
   mine: Book[]
   explore: Book[]
   loadingBooks: boolean
@@ -30,8 +34,10 @@ interface PlumeCtx {
   favs: string[]
   progress: Record<string, string>
   refreshBooks: () => Promise<void>
+  refreshStats: () => Promise<void>
   login: (u: User, token: string) => Promise<void>
   logout: (expired?: boolean) => Promise<void>
+  updateProfile: (patch: Partial<User>) => Promise<void>
   toggleFav: (id: string) => void
   markProgress: (bookId: string, chId: string | undefined) => void
   applyBook: (b: Book) => void
@@ -50,6 +56,7 @@ export function usePlume(): PlumeCtx {
 export function PlumeProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
+  const [stats, setStats] = useState<ProfileStats | null>(null)
   const [ready, setReady] = useState(false)
   const [mine, setMine] = useState<Book[]>([])
   const [explore, setExplore] = useState<Book[]>([])
@@ -81,6 +88,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
       }
       clearSession()
       setUser(null)
+      setStats(null)
       setMine([])
       setExplore([])
       setFavs([])
@@ -107,10 +115,26 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
     }
   }, [logout])
 
+  const refreshStats = useCallback(async () => {
+    if (!getStoredUser()) return
+    try {
+      const { user: u, stats: s } = await AuthAPI.me()
+      setUser(u)
+      updateStoredUser(u)
+      setStats(s)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : ''
+      if (/Connecte-toi|Non connecté|Session/.test(msg)) logout(true)
+    }
+  }, [logout])
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (user) refreshBooks()
-  }, [user, refreshBooks])
+    if (user) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      refreshBooks()
+      refreshStats()
+    }
+  }, [user, refreshBooks, refreshStats])
 
   const importLocalOnce = useCallback(async (u: User) => {
     try {
@@ -158,9 +182,19 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
       setTab('mine')
       await importLocalOnce(u)
       refreshBooks()
-      toast.success(`Bienvenue, ${u.name} !`)
+      refreshStats()
+      toast.success(`Bienvenue, ${u.display_name || u.name} !`)
     },
-    [importLocalOnce, refreshBooks]
+    [importLocalOnce, refreshBooks, refreshStats]
+  )
+
+  const updateProfile = useCallback(
+    async (patch: Partial<User>) => {
+      const { user: u } = await ProfileAPI.update(patch)
+      setUser(u)
+      updateStoredUser(u)
+    },
+    []
   )
 
   const toggleFav = useCallback(
@@ -203,6 +237,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       user,
+      stats,
       mine,
       explore,
       loadingBooks,
@@ -211,15 +246,17 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
       favs,
       progress,
       refreshBooks,
+      refreshStats,
       login,
       logout,
+      updateProfile,
       toggleFav,
       markProgress,
       applyBook,
       dropBook,
       prependMine,
     }),
-    [user, mine, explore, loadingBooks, tab, favs, progress, refreshBooks, login, logout, toggleFav, markProgress, applyBook, dropBook, prependMine]
+    [user, stats, mine, explore, loadingBooks, tab, favs, progress, refreshBooks, refreshStats, login, logout, updateProfile, toggleFav, markProgress, applyBook, dropBook, prependMine]
   )
 
   if (!ready) return null

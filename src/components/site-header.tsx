@@ -4,13 +4,13 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { LibraryBig, LogOut, Plus } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
+import { Avatar } from '@/components/avatar'
 import { usePlume } from '@/components/plume-provider'
-import { bookWords } from '@/lib/plume'
 
-export function SiteHeader({ onCreate }: { onCreate?: () => void }) {
+export function SiteHeader() {
   const { user, mine, logout } = usePlume()
   const router = useRouter()
-  const totalWords = [...mine].reduce(
+  const totalWords = mine.reduce(
     (s, b) => s + (b.chapters ?? []).reduce((a, c) => a + (c.content ?? '').trim().split(/\s+/).filter(Boolean).length, 0),
     0
   )
@@ -28,26 +28,31 @@ export function SiteHeader({ onCreate }: { onCreate?: () => void }) {
         <div className="ml-auto flex items-center gap-2.5 text-sm">
           {user ? (
             <>
-              <span className="text-muted-foreground hidden items-center gap-1.5 sm:flex">
+              <span className="text-muted-foreground hidden items-center gap-1.5 lg:flex">
                 <LibraryBig size={15} /> {mine.length} livre(s) · {totalWords.toLocaleString('fr-FR')} mots
               </span>
-              <span className="bg-secondary hidden rounded-full px-3 py-1.5 font-semibold md:block">{user.name}</span>
-              {onCreate && (
-                <Button onClick={onCreate} size="sm" className="rounded-xl">
-                  <Plus size={16} /> Créer
-                </Button>
-              )}
+              <Link href="/bibliotheque" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
+                Bibliothèque
+              </Link>
+              <Link href="/bibliotheque" className={buttonVariants({ size: 'sm' })}>
+                <Plus size={16} /> Créer
+              </Link>
+              <Link href="/profil" className="flex items-center gap-2 rounded-full py-1 pl-1 pr-1 hover:bg-stone-100 md:pr-3" aria-label="Mon profil">
+                <Avatar user={user} size={32} />
+                <span className="hidden max-w-[10rem] truncate font-semibold md:block">{user.display_name || user.name}</span>
+              </Link>
               <Button
-                variant="outline"
-                size="sm"
-                className="rounded-xl"
+                variant="ghost"
+                size="icon-sm"
+                className="text-stone-500"
                 onClick={() => {
                   logout()
                   router.push('/')
                 }}
                 title="Se déconnecter"
+                aria-label="Se déconnecter"
               >
-                <LogOut size={15} /> <span className="hidden sm:inline">Quitter</span>
+                <LogOut size={16} />
               </Button>
             </>
           ) : (
@@ -65,5 +70,3 @@ export function SiteHeader({ onCreate }: { onCreate?: () => void }) {
     </header>
   )
 }
-
-export { bookWords }
