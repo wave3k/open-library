@@ -9,6 +9,7 @@ const SIZES = {
 type CoverInput = {
   cover?: string
   cover_style?: {
+    mode?: string
     preset?: string
     font?: string
     pattern?: string
@@ -64,11 +65,27 @@ export function BookCover({
   const layout = style.layout || 'classic'
   const pattern = style.pattern || 'none'
   const image = style.image || ''
+  const imageMode = style.mode === 'image' && !!image
 
-  const bgClass = image ? '' : `bg-gradient-to-br ${preset.bg}`
+  const bgClass = image && !imageMode ? '' : `bg-gradient-to-br ${preset.bg}`
   const bgStyle: React.CSSProperties = image
-    ? { backgroundImage: `linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.55)), url("${image}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    ? { backgroundImage: `linear-gradient(rgba(0,0,0,.2), rgba(0,0,0,.6)), url("${image}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : {}
+
+  // Mode image : l'image remplit la couverture, le titre est posé dessus.
+  if (imageMode) {
+    return (
+      <div className="book3d" style={{ width: s.w, height: s.h }} role="img" aria-label={`Couverture de ${title}`}>
+        <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: 'inherit', ...bgStyle }}>
+          <div className={`absolute inset-x-0 bottom-0 ${fontDef.className}`} style={{ padding: s.pad, background: 'linear-gradient(transparent, rgba(0,0,0,.75))' }}>
+            <p className="font-bold leading-snug text-white" style={{ fontSize: s.title, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{title}</p>
+            <p className="mt-0.5 truncate uppercase tracking-wider text-white/80" style={{ fontSize: s.author }}>{author}</p>
+          </div>
+        </div>
+        <div className="book3d-sheen" />
+      </div>
+    )
+  }
 
   const titleEl = (clamp = 5) => (
     <p

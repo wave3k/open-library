@@ -16,6 +16,7 @@ export interface AuthorRef {
 }
 
 export interface CoverStyle {
+  mode?: string
   preset: string
   font: string
   pattern: string
@@ -115,7 +116,22 @@ export interface Analytics {
   likesTrend: { day: string; likes: number }[]
 }
 
-export const GENRES = ['Fantastique', 'Romance', 'Science-Fiction', 'Policier', 'Aventure', 'Horreur', 'Poésie']
+export interface Notification {
+  id: string
+  type: 'like' | 'comment' | 'comment_like' | 'follow'
+  read: boolean
+  created_at: string
+  book_id: string | null
+  book_title: string | null
+  actor: AuthorRef | null
+}
+
+export const GENRES = [
+  'Fantastique', 'Romance', 'Science-Fiction', 'Policier', 'Thriller', 'Aventure',
+  'Horreur', 'Poésie', 'Éducatif', 'Programmation', 'Business', 'Développement personnel',
+  'Histoire', 'Biographie', 'Cuisine', 'Voyage', 'Santé', 'Humour', 'Jeunesse',
+  'Manga & BD', 'Science', 'Art & Musique', 'Sport', 'Religion & Spiritualité',
+]
 
 export const REFERRAL_SOURCES = [
   { id: 'youtube', label: 'YouTube' },
@@ -237,7 +253,7 @@ export const AuthAPI = {
   login: (p: { email: string; password: string }) =>
     request<{ user: User; token: string }>('/api/auth/login', { method: 'POST', body: p, auth: false }),
   logout: () => request<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }).catch(() => ({ ok: true })),
-  me: () => request<{ user: User; stats: ProfileStats }>('/api/me'),
+  me: () => request<{ user: User; stats: ProfileStats; unread: number }>('/api/me'),
   usernameAvailable: (username: string) =>
     request<{ available: boolean }>(`/api/username-available?username=${encodeURIComponent(username)}`, { auth: false }),
 }
@@ -296,9 +312,39 @@ export const AnalyticsAPI = {
   get: () => request<Analytics>('/api/analytics'),
 }
 
+export const NotificationsAPI = {
+  list: () => request<{ notifications: Notification[]; unread: number }>('/api/notifications'),
+  markAllRead: () => request<{ ok: boolean }>('/api/notifications/read', { method: 'POST' }),
+}
+
+export const PublicAPI = {
+  trending: () => request<{ books: Book[] }>('/api/public/trending', { auth: false }).then((d) => d.books),
+  search: (q: string) =>
+    request<{ books: Book[]; query: string }>(`/api/public/search?q=${encodeURIComponent(q)}`, { auth: false }).then(
+      (d) => d.books
+    ),
+}
+
 export const ProfileAPI = {
   get: (username: string) =>
-    request<{ user: User; stats: ProfileStats; books: Book[] }>(`/api/users/${encodeURIComponent(username)}`),
+    request<{
+      user: User
+      stats: ProfileStats
+      books: Book[]
+      followers: number
+      following: number
+      is_following: boolean
+    }>(`/api/users/${encodeURIComponent(username)}`),
+  follow: (username: string) =>
+    request<{ followers: number; following: number; is_following: boolean }>(
+      `/api/users/${encodeURIComponent(username)}/follow`,
+      { method: 'POST' }
+    ),
+  unfollow: (username: string) =>
+    request<{ followers: number; following: number; is_following: boolean }>(
+      `/api/users/${encodeURIComponent(username)}/follow`,
+      { method: 'DELETE' }
+    ),
   update: (p: Partial<Pick<User, 'display_name' | 'username' | 'bio' | 'avatar_emoji' | 'avatar_color' | 'avatar_image' | 'banner_image' | 'preferences' | 'referral_source' | 'onboarded'>>) =>
     request<{ user: User; stats: ProfileStats }>('/api/profile', { method: 'PUT', body: p }),
   changePassword: (current_password: string, new_password: string) =>

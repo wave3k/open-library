@@ -61,6 +61,9 @@ export function ProfileView({ username }: { username?: string }) {
   const { user: me, stats: myStats, mine: myBooks, refreshStats, refreshBooks } = usePlume()
   const isSelf = !username
   const [remote, setRemote] = useState<{ user: User; stats: ProfileStats; books: Book[] } | null>(null)
+  const [counts, setCounts] = useState<{ followers: number; following: number } | null>(null)
+  const [isFollowing, setIsFollowing] = useState(false)
+  const [followBusy, setFollowBusy] = useState(false)
   const [loading, setLoading] = useState(!isSelf)
   const [editing, setEditing] = useState(false)
   const [tab, setTab] = useState<'oeuvres' | 'a-propos'>('oeuvres')
@@ -69,16 +72,41 @@ export function ProfileView({ username }: { username?: string }) {
   const bannerInput = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (isSelf) return
+    const handle = isSelf ? me?.username : username
+    if (!handle) return
     let cancelled = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true)
-    ProfileAPI.get(username as string)
-      .then((d) => { if (!cancelled) setRemote(d) })
+    if (!isSelf) setLoading(true)
+    ProfileAPI.get(handle)
+      .then((d) => {
+        if (cancelled) return
+        setCounts({ followers: d.followers, following: d.following })
+        setIsFollowing(d.is_following)
+        if (!isSelf) setRemote({ user: d.user, stats: d.stats, books: d.books })
+      })
       .catch((err) => toast.error(err instanceof Error ? err.message : 'Profil introuvable.'))
       .finally(() => !cancelled && setLoading(false))
     return () => { cancelled = true }
-  }, [username, isSelf])
+  }, [username, isSelf, me?.username])
+
+  const toggleFollow = async () => {
+    const handle = profile?.username
+    if (!handle) return
+    setFollowBusy(true)
+    const next = !isFollowing
+    setIsFollowing(next)
+    setCounts((c) => (c ? { ...c, followers: c.followers + (next ? 1 : -1) } : c))
+    try {
+      const res = next ? await ProfileAPI.follow(handle) : await ProfileAPI.unfollow(handle)
+      setIsFollowing(res.is_following)
+      setCounts({ followers: res.followers, following: res.following })
+    } catch (err) {
+      setIsFollowing(!next)
+      toast.error(err instanceof Error ? err.message : 'Action impossible.')
+    } finally {
+      setFollowBusy(false)
+    }
+  }
 
   const profile: User | null = isSelf ? me : remote?.user ?? null
   const stats: ProfileStats | null = isSelf ? myStats : remote?.stats ?? null
@@ -156,7 +184,15 @@ export function ProfileView({ username }: { username?: string }) {
             </div>
             <div className="min-w-0 flex-1 pb-1">
               <h1 className="truncate text-2xl font-bold">{profile.display_name}</h1>
-              <p className="text-muted-foreground text-sm">@{profile.username}</p>
+              <p className="text-muted-foreground text-sm">
+                @{profile.username}
+                {counts && (
+                  <>
+                    {' · '}<b className="text-stone-700 dark:text-stone-200">{counts.followers.toLocaleString('fr-FR')}</b> abonné(s)
+                    {' · '}<b className="text-stone-700 dark:text-stone-200">{counts.following.toLocaleString('fr-FR')}</b> abonnement(s)
+                  </>
+                )}
+              </p>
             </div>
             {isSelf ? (
               <div className="flex gap-2">
@@ -166,7 +202,10 @@ export function ProfileView({ username }: { username?: string }) {
                 <Button onClick={() => setEditing(true)}><Pencil size={15} /> Modifier</Button>
               </div>
             ) : (
-              <Button variant="outline" disabled>@{profile.username}</Button>
+              <Button variant={isFollowing ? 'outline' : 'default'} onClick={toggleFollow} disabled={followBusy}>
+                {followBusy ? <Loader2 size={15} className="animate-spin" /> : null}
+                {isFollowing ? 'Abonné ✓' : 'Suivre'}
+              </Button>
             )}
           </div>
 

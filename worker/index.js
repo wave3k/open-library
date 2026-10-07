@@ -12,7 +12,12 @@ import { recommend } from './recommend.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const USERNAME_RE = /^[a-z0-9_]{3,24}$/
-const GENRES = ['Fantastique', 'Romance', 'Science-Fiction', 'Policier', 'Aventure', 'Horreur', 'Poésie']
+const GENRES = [
+  'Fantastique', 'Romance', 'Science-Fiction', 'Policier', 'Thriller', 'Aventure',
+  'Horreur', 'Poésie', 'Éducatif', 'Programmation', 'Business', 'Développement personnel',
+  'Histoire', 'Biographie', 'Cuisine', 'Voyage', 'Santé', 'Humour', 'Jeunesse',
+  'Manga & BD', 'Science', 'Art & Musique', 'Sport', 'Religion & Spiritualité',
+]
 const COVERS = ['indigo', 'emerald', 'rose', 'sky', 'amber', 'slate']
 const COVER_FONTS = ['serif', 'sans', 'mono', 'display', 'hand']
 const COVER_PATTERNS = ['none', 'stripes', 'dots', 'grid', 'waves']
@@ -93,6 +98,7 @@ function cleanCoverStyle(raw) {
   const o = raw && typeof raw === 'object' ? raw : {}
   const pick = (v, list, def) => (list.includes(v) ? v : def)
   return {
+    mode: pick(o.mode, ['design', 'image'], 'design'),
     preset: pick(o.preset, COVERS, 'indigo'),
     font: pick(o.font, COVER_FONTS, 'serif'),
     pattern: pick(o.pattern, COVER_PATTERNS, 'none'),
@@ -108,8 +114,7 @@ function cleanTags(raw) {
   return [...new Set(raw.map((t) => String(t).trim().slice(0, 20)).filter(Boolean))].slice(0, 5)
 }
 
-function serializeBook(book, chapters, extra = {}) {
-  return {
+function serializeBook(book, chapters, extra = {}) {  return {
     id: book.id,
     owner_id: book.owner_id,
     owner_name: book.owner_display_name || book.owner_name || 'Anonyme',
@@ -132,6 +137,39 @@ function serializeBook(book, chapters, extra = {}) {
   }
 }
 
+/** Carte publique allégée (sans contenu de chapitre) pour landing/recherche. */
+function publicCard(b) {
+  return {
+    id: b.id,
+    owner_id: b.owner_id,
+    owner_name: b.owner_display_name || 'Anonyme',
+    author: b.author,
+    title: b.title,
+    genre: b.genre,
+    description: b.description || '',
+    cover: b.cover,
+    cover_style: parseObj(b.cover_style, {}),
+    tags: parseArr(b.tags, []),
+    is_public: true,
+    created_at: b.created_at,
+    updated_at: b.updated_at,
+    views: b.views || 0,
+    impressions: b.impressions || 0,
+    likes: b.like_count || 0,
+    comments: b.comment_count || 0,
+    chapter_count: b.chapter_count || 0,
+    owner: {
+      id: b.owner_id,
+      username: b.owner_username || b.owner_id,
+      display_name: b.owner_display_name || 'Anonyme',
+      avatar_emoji: b.owner_avatar_emoji || '',
+      avatar_color: b.owner_avatar_color || 'amber',
+      avatar_image: b.owner_avatar_image || '',
+    },
+    chapters: [],
+  }
+}
+
 const BOOK_SELECT = `SELECT b.*, u.username AS owner_username, u.display_name AS owner_display_name,
   u.avatar_emoji AS owner_avatar_emoji, u.avatar_color AS owner_avatar_color, u.avatar_image AS owner_avatar_image
   FROM books b LEFT JOIN users u ON u.id = b.owner_id`
@@ -142,6 +180,23 @@ async function bookCounts(db, bookId) {
     db.prepare('SELECT COUNT(*) AS n FROM comments WHERE book_id = ?').bind(bookId).first(),
   ])
   return { likes: l?.n ?? 0, comments: c?.n ?? 0 }
+}
+
+/** Crée une notification (sauf si l'acteur est le destinataire). */
+async function notify(db, { userId, type, actorId, bookId = null, commentId = null }) {
+  if (!userId || userId === actorId) return
+  await db
+    .prepare('INSERT INTO notifications (id, user_id, type, actor_id, book_id, comment_id, read, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, ?)')
+    .bind(crypto.randomUUID(), userId, type, actorId, bookId, commentId, new Date().toISOString())
+    .run()
+}
+
+async function followCounts(db, userId) {
+  const [f, g] = await Promise.all([
+    db.prepare('SELECT COUNT(*) AS n FROM follows WHERE following_id = ?').bind(userId).first(),
+    db.prepare('SELECT COUNT(*) AS n FROM follows WHERE follower_id = ?').bind(userId).first(),
+  ])
+  return { followers: f?.n ?? 0, following: g?.n ?? 0 }
 }
 
 async function loadBook(db, id) {
@@ -329,7 +384,8 @@ export default {
       if (req.method === 'GET' && path === '/api/me') {
         if (!me) return json({ error: 'Non connecté.' }, 401)
         const stats = await profileStats(db, me.id)
-        return json({ user: me, stats })
+        const unread = await db.prepare('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND read = 0').bind(me.id).first()
+        return json({ user: me, stats, unread: unread?.n ?? 0 })
       }
 
       if (req.method === 'PUT' && path === '/api/profile') {
@@ -400,6 +456,10 @@ export default {
         if (!row) return json({ error: 'Profil introuvable.' }, 404)
         const isSelf = me && me.id === row.id
         const stats = await profileStats(db, row.id)
+        const fc = await followCounts(db, row.id)
+        const isFollowing = me
+          ? await db.prepare('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?').bind(me.id, row.id).first()
+          : null
         const res = await db
           .prepare(`${BOOK_SELECT} WHERE b.owner_id = ? ${isSelf ? '' : 'AND b.is_public = 1 AND EXISTS (SELECT 1 FROM chapters ch WHERE ch.book_id = b.id)'} ORDER BY b.updated_at DESC`)
           .bind(row.id)
@@ -409,7 +469,90 @@ export default {
           const ch = await db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY position ASC, rowid ASC').bind(b.id).all()
           books.push(serializeBook(b, ch.results || [], await bookCounts(db, b.id)))
         }
-        return json({ user: publicProfile(row, { self: !!isSelf }), stats, books })
+        return json({
+          user: publicProfile(row, { self: !!isSelf }),
+          stats,
+          books,
+          followers: fc.followers,
+          following: fc.following,
+          is_following: !!isFollowing,
+        })
+      }
+
+      // Suivre / ne plus suivre un auteur
+      const followMatch = path.match(/^\/api\/users\/([^/]+)\/follow$/)
+      if (followMatch) {
+        if (!me) return json({ error: 'Connecte-toi pour suivre des auteurs.' }, 401)
+        const handle = decodeURIComponent(followMatch[1])
+        const target = await db.prepare('SELECT id FROM users WHERE username = ? OR id = ?').bind(handle, handle).first()
+        if (!target) return json({ error: 'Profil introuvable.' }, 404)
+        if (target.id === me.id) return json({ error: 'Tu ne peux pas te suivre toi-même.' }, 400)
+        if (req.method === 'POST') {
+          await db
+            .prepare('INSERT OR IGNORE INTO follows (follower_id, following_id, created_at) VALUES (?, ?, ?)')
+            .bind(me.id, target.id, new Date().toISOString())
+            .run()
+          await notify(db, { userId: target.id, type: 'follow', actorId: me.id })
+        } else if (req.method === 'DELETE') {
+          await db.prepare('DELETE FROM follows WHERE follower_id = ? AND following_id = ?').bind(me.id, target.id).run()
+        }
+        const fc = await followCounts(db, target.id)
+        return json({ followers: fc.followers, following: fc.following, is_following: req.method === 'POST' })
+      }
+
+      // ---------- PUBLIC (sans authentification) ----------
+      if (req.method === 'GET' && path === '/api/public/trending') {
+        const res = await db
+          .prepare(
+            `SELECT b.id, b.title, b.author, b.genre, b.description, b.cover, b.cover_style, b.tags,
+                    b.views, b.impressions, b.owner_id,
+                    u.username AS owner_username, u.display_name AS owner_display_name,
+                    u.avatar_emoji AS owner_avatar_emoji, u.avatar_color AS owner_avatar_color, u.avatar_image AS owner_avatar_image,
+                    (SELECT COUNT(*) FROM likes l WHERE l.book_id = b.id) AS like_count,
+                    (SELECT COUNT(*) FROM comments cm WHERE cm.book_id = b.id) AS comment_count,
+                    (SELECT COUNT(*) FROM chapters ch WHERE ch.book_id = b.id) AS chapter_count
+             FROM books b LEFT JOIN users u ON u.id = b.owner_id
+             WHERE b.is_public = 1 AND EXISTS (SELECT 1 FROM chapters ch WHERE ch.book_id = b.id)
+             ORDER BY (like_count * 5 + comment_count * 3 + b.views) DESC, b.updated_at DESC LIMIT 12`
+          )
+          .all()
+        return json({ books: (res.results || []).map((b) => publicCard(b)) })
+      }
+
+      if (req.method === 'GET' && path === '/api/public/search') {
+        const q = String(url.searchParams.get('q') ?? '').trim().slice(0, 60)
+        let res
+        if (!q) {
+          res = await db
+            .prepare(
+              `SELECT b.*, u.username AS owner_username, u.display_name AS owner_display_name,
+                      u.avatar_emoji AS owner_avatar_emoji, u.avatar_color AS owner_avatar_color, u.avatar_image AS owner_avatar_image,
+                      (SELECT COUNT(*) FROM likes l WHERE l.book_id = b.id) AS like_count,
+                      (SELECT COUNT(*) FROM comments cm WHERE cm.book_id = b.id) AS comment_count,
+                      (SELECT COUNT(*) FROM chapters ch WHERE ch.book_id = b.id) AS chapter_count
+               FROM books b LEFT JOIN users u ON u.id = b.owner_id
+               WHERE b.is_public = 1 AND EXISTS (SELECT 1 FROM chapters ch WHERE ch.book_id = b.id)
+               ORDER BY b.updated_at DESC LIMIT 24`
+            )
+            .all()
+        } else {
+          const like = `%${q.toLowerCase()}%`
+          res = await db
+            .prepare(
+              `SELECT b.*, u.username AS owner_username, u.display_name AS owner_display_name,
+                      u.avatar_emoji AS owner_avatar_emoji, u.avatar_color AS owner_avatar_color, u.avatar_image AS owner_avatar_image,
+                      (SELECT COUNT(*) FROM likes l WHERE l.book_id = b.id) AS like_count,
+                      (SELECT COUNT(*) FROM comments cm WHERE cm.book_id = b.id) AS comment_count,
+                      (SELECT COUNT(*) FROM chapters ch WHERE ch.book_id = b.id) AS chapter_count
+               FROM books b LEFT JOIN users u ON u.id = b.owner_id
+               WHERE b.is_public = 1 AND EXISTS (SELECT 1 FROM chapters ch WHERE ch.book_id = b.id)
+                 AND (LOWER(b.title) LIKE ? OR LOWER(b.author) LIKE ? OR LOWER(b.description) LIKE ? OR LOWER(b.tags) LIKE ? OR LOWER(b.genre) LIKE ?)
+               ORDER BY b.views DESC LIMIT 24`
+            )
+            .bind(like, like, like, like, like)
+            .all()
+        }
+        return json({ books: (res.results || []).map((b) => publicCard(b)), query: q })
       }
 
       if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
@@ -438,6 +581,47 @@ export default {
       if (req.method === 'DELETE' && path === '/api/account') {
         if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
         await db.prepare('DELETE FROM users WHERE id = ?').bind(me.id).run()
+        return json({ ok: true })
+      }
+
+      // ---------- NOTIFICATIONS ----------
+      if (req.method === 'GET' && path === '/api/notifications') {
+        const res = await db
+          .prepare(
+            `SELECT n.id, n.type, n.read, n.created_at, n.book_id, n.comment_id, n.actor_id,
+                    u.username AS actor_username, u.display_name AS actor_display_name,
+                    u.avatar_emoji AS actor_avatar_emoji, u.avatar_color AS actor_avatar_color, u.avatar_image AS actor_avatar_image,
+                    b.title AS book_title
+             FROM notifications n
+             LEFT JOIN users u ON u.id = n.actor_id
+             LEFT JOIN books b ON b.id = n.book_id
+             WHERE n.user_id = ? ORDER BY n.created_at DESC LIMIT 100`
+          )
+          .bind(me.id)
+          .all()
+        const notifications = (res.results || []).map((n) => ({
+          id: n.id,
+          type: n.type,
+          read: n.read === 1,
+          created_at: n.created_at,
+          book_id: n.book_id,
+          book_title: n.book_title || null,
+          actor: n.actor_id
+            ? {
+                id: n.actor_id,
+                username: n.actor_username,
+                display_name: n.actor_display_name || 'Anonyme',
+                avatar_emoji: n.actor_avatar_emoji || '',
+                avatar_color: n.actor_avatar_color || 'amber',
+                avatar_image: n.actor_avatar_image || '',
+              }
+            : null,
+        }))
+        return json({ notifications, unread: notifications.filter((n) => !n.read).length })
+      }
+
+      if (req.method === 'POST' && path === '/api/notifications/read') {
+        await db.prepare('UPDATE notifications SET read = 1 WHERE user_id = ?').bind(me.id).run()
         return json({ ok: true })
       }
 
@@ -589,10 +773,14 @@ export default {
         // ---- Interactions publiques (likes, commentaires, stats) ----
         if (rest === '/like') {
           if (req.method === 'POST') {
-            await db
+            const ins = await db
               .prepare('INSERT OR IGNORE INTO likes (book_id, user_id, created_at) VALUES (?, ?, ?)')
               .bind(bookId, me.id, new Date().toISOString())
               .run()
+            if (ins.meta.changes) {
+              const bk = await db.prepare('SELECT owner_id FROM books WHERE id = ?').bind(bookId).first()
+              if (bk) await notify(db, { userId: bk.owner_id, type: 'like', actorId: me.id, bookId })
+            }
           } else if (req.method === 'DELETE') {
             await db.prepare('DELETE FROM likes WHERE book_id = ? AND user_id = ?').bind(bookId, me.id).run()
           }
@@ -660,6 +848,8 @@ export default {
               .prepare('INSERT INTO comments (id, book_id, user_id, content, created_at) VALUES (?, ?, ?, ?, ?)')
               .bind(id, bookId, me.id, content, new Date().toISOString())
               .run()
+            const bk = await db.prepare('SELECT owner_id FROM books WHERE id = ?').bind(bookId).first()
+            if (bk) await notify(db, { userId: bk.owner_id, type: 'comment', actorId: me.id, bookId, commentId: id })
             return json({ ok: true, id }, 201)
           }
         }
@@ -670,10 +860,14 @@ export default {
           const exists = await db.prepare('SELECT id FROM comments WHERE id = ? AND book_id = ?').bind(cid, bookId).first()
           if (!exists) return json({ error: 'Commentaire introuvable.' }, 404)
           if (req.method === 'POST') {
-            await db
+            const ins = await db
               .prepare('INSERT OR IGNORE INTO comment_likes (comment_id, user_id, created_at) VALUES (?, ?, ?)')
               .bind(cid, me.id, new Date().toISOString())
               .run()
+            if (ins.meta.changes) {
+              const cowner = await db.prepare('SELECT user_id FROM comments WHERE id = ?').bind(cid).first()
+              if (cowner) await notify(db, { userId: cowner.user_id, type: 'comment_like', actorId: me.id, bookId, commentId: cid })
+            }
           } else if (req.method === 'DELETE') {
             await db.prepare('DELETE FROM comment_likes WHERE comment_id = ? AND user_id = ?').bind(cid, me.id).run()
           }

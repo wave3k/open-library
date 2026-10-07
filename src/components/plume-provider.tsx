@@ -35,6 +35,7 @@ interface PlumeCtx {
   setTab: (t: 'mine' | 'explore' | 'for-you') => void
   favs: string[]
   progress: Record<string, string>
+  unread: number
   refreshBooks: () => Promise<void>
   refreshStats: () => Promise<void>
   login: (u: User, token: string) => Promise<void>
@@ -67,6 +68,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
   const [tab, setTab] = useState<'mine' | 'explore' | 'for-you'>('for-you')
   const [favs, setFavs] = useState<string[]>([])
   const [progress, setProgress] = useState<Record<string, string>>({})
+  const [unread, setUnread] = useState(0)
 
   useEffect(() => {
     // Lecture de localStorage après montage (pas d'accès au storage côté serveur)
@@ -123,10 +125,11 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
   const refreshStats = useCallback(async () => {
     if (!getStoredUser()) return
     try {
-      const { user: u, stats: s } = await AuthAPI.me()
+      const { user: u, stats: s, unread: n } = await AuthAPI.me()
       setUser(u)
       updateStoredUser(u)
       setStats(s)
+      setUnread(n ?? 0)
     } catch (err) {
       const msg = err instanceof Error ? err.message : ''
       if (/Connecte-toi|Non connecté|Session/.test(msg)) logout(true)
@@ -253,6 +256,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
       setTab,
       favs,
       progress,
+      unread,
       refreshBooks,
       refreshStats,
       login,
@@ -264,7 +268,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
       dropBook,
       prependMine,
     }),
-    [user, stats, mine, explore, recommended, loadingBooks, tab, favs, progress, refreshBooks, refreshStats, login, logout, updateProfile, toggleFav, markProgress, applyBook, dropBook, prependMine]
+    [user, stats, mine, explore, recommended, loadingBooks, tab, favs, progress, unread, refreshBooks, refreshStats, login, logout, updateProfile, toggleFav, markProgress, applyBook, dropBook, prependMine]
   )
 
   if (!ready) return null

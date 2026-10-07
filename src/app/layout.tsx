@@ -9,8 +9,8 @@ import { SiteHeader } from '@/components/site-header'
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
-  title: 'Open Library — Écris et lis des livres',
-  description: 'Crée des livres, écris-les chapitre par chapitre et relis-les comme de vrais livres. Partage-les avec la communauté.',
+  title: 'Open Library — Publier et lire des livres gratuitement',
+  description: 'Publier et lire des livres gratuitement. Écris tes histoires chapitre par chapitre, partage-les et découvre celles des autres sur Open Library.',
 }
 
 // Applique le thème avant le premier rendu pour éviter le flash.

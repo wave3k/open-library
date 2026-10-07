@@ -77,7 +77,8 @@ export function LoginForm() {
     try {
       const data = await AuthAPI.login({ email: email.trim(), password })
       await login(data.user, data.token)
-      router.push(destinationFor(data.user))
+      const next = new URLSearchParams(window.location.search).get('next')
+      router.push(next && next.startsWith('/') ? next : destinationFor(data.user))
     } catch (err) {
       setServerError(err instanceof Error ? err.message : 'Erreur de connexion.')
     } finally {
@@ -118,7 +119,8 @@ export function SignupForm() {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [errors, setErrors] = useState<{ name?: string; username?: string; email?: string; password?: string }>({})
+  const [confirm, setConfirm] = useState('')
+  const [errors, setErrors] = useState<{ name?: string; username?: string; email?: string; password?: string; confirm?: string }>({})
   const [serverError, setServerError] = useState('')
   const [loading, setLoading] = useState(false)
   const [checking, setChecking] = useState(false)
@@ -154,6 +156,7 @@ export function SignupForm() {
     if (!USERNAME_RE.test(username)) e.username = '3 à 24 caractères : lettres minuscules, chiffres et _.'
     if (!EMAIL_RE.test(email.trim())) e.email = 'Adresse e-mail invalide.'
     if (password.length < 8) e.password = '8 caractères minimum pour protéger ton compte.'
+    if (confirm !== password) e.confirm = 'Les mots de passe ne correspondent pas.'
     setErrors(e)
     if (Object.keys(e).length > 0) return
     setLoading(true)
@@ -209,6 +212,11 @@ export function SignupForm() {
           <div className="mb-1"><Label htmlFor="up-password">Mot de passe</Label></div>
           <Input id="up-password" type="password" value={password} onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })) }} placeholder="••••••••" maxLength={128} autoComplete="new-password" aria-invalid={!!errors.password} className={errors.password ? 'border-red-400' : ''} />
           {errors.password ? <p className="mt-1 text-xs font-medium text-red-600">{errors.password}</p> : <p className="mt-1 text-xs text-stone-400">8 caractères minimum.</p>}
+        </div>
+        <div>
+          <div className="mb-1"><Label htmlFor="up-confirm">Confirmer le mot de passe</Label></div>
+          <Input id="up-confirm" type="password" value={confirm} onChange={(e) => { setConfirm(e.target.value); setErrors((p) => ({ ...p, confirm: undefined })) }} placeholder="••••••••" maxLength={128} autoComplete="new-password" aria-invalid={!!errors.confirm} className={errors.confirm ? 'border-red-400' : ''} />
+          {errors.confirm && <p className="mt-1 text-xs font-medium text-red-600" role="alert">{errors.confirm}</p>}
         </div>
         {serverError && <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-700" role="alert">{serverError}</p>}
         <Button type="submit" className="w-full" disabled={loading || available === false || checking}>

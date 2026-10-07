@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LibraryBig, Plus, Settings } from 'lucide-react'
+import { LibraryBig, Plus, Settings, Bell } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { Avatar } from '@/components/avatar'
 import { usePlume } from '@/components/plume-provider'
@@ -11,7 +11,7 @@ import { usePlume } from '@/components/plume-provider'
 const BARE_ROUTES = ['/connexion', '/inscription', '/onboarding']
 
 export function SiteHeader() {
-  const { user } = usePlume()
+  const { user, unread } = usePlume()
   const pathname = usePathname()
 
   if (BARE_ROUTES.includes(pathname)) return null
@@ -38,6 +38,19 @@ export function SiteHeader() {
               <Link href="/profil" className="flex items-center gap-2 rounded-full py-1 pl-1 pr-1 hover:bg-stone-100 md:pr-3" aria-label="Mon profil">
                 <Avatar user={user} size={32} />
                 <span className="hidden max-w-[10rem] truncate font-semibold md:block">{user.display_name || user.name}</span>
+              </Link>
+              <Link
+                href="/notifications"
+                className="text-muted-foreground relative rounded-lg p-2 hover:bg-stone-100 hover:text-stone-800"
+                title="Notifications"
+                aria-label={`Notifications${unread ? ` (${unread} non lues)` : ''}`}
+              >
+                <Bell size={18} />
+                {unread > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[11px] font-bold text-white">
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
               </Link>
               <Link
                 href="/parametres"

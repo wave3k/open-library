@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { BookCover } from '@/components/book-cover'
+import { ImageCropper } from '@/components/image-cropper'
 import {
   COVERS,
   COVER_FONTS,
@@ -97,6 +98,7 @@ export function BookFormDialog({
   const [errors, setErrors] = useState<{ title?: string; author?: string; description?: string }>({})
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [cropFile, setCropFile] = useState<File | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const set = (patch: Partial<CoverStyle>) => setStyle((s) => ({ ...s, ...patch }))
@@ -112,11 +114,21 @@ export function BookFormDialog({
 
   const onPickImage = async (file: File | undefined) => {
     if (!file) return
+    setCropFile(file)
+  }
+
+  const onPickCoverFile = (file: File | undefined) => {
+    if (!file) return
+    setCropFile(file)
+  }
+
+  const onCropped = async (blob: Blob) => {
+    setCropFile(null)
     setUploading(true)
     try {
-      const { url } = await MediaAPI.upload(file)
+      const { url } = await MediaAPI.upload(blob)
       set({ image: url })
-      toast.success('Image ajoutée à la couverture')
+      toast.success('Image de couverture ajoutée')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Envoi impossible.')
     } finally {
@@ -275,6 +287,39 @@ export function BookFormDialog({
                 </>
               ) : (
                 <>
+                  {/* Mode de couverture */}
+                  <div>
+                    <Label>Type de couverture</Label>
+                    <div className="mt-1.5 grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => set({ mode: 'design' })} aria-pressed={style.mode !== 'image'}
+                        className={cn('rounded-xl border px-3 py-2.5 text-sm font-medium', style.mode !== 'image' ? 'border-amber-600 bg-amber-50 text-amber-900' : 'border-stone-200 hover:bg-stone-50')}>
+                        <Palette size={14} className="mr-1.5 inline" /> Design personnalisé
+                      </button>
+                      <button type="button" onClick={() => set({ mode: 'image' })} aria-pressed={style.mode === 'image'}
+                        className={cn('rounded-xl border px-3 py-2.5 text-sm font-medium', style.mode === 'image' ? 'border-amber-600 bg-amber-50 text-amber-900' : 'border-stone-200 hover:bg-stone-50')}>
+                        <ImagePlus size={14} className="mr-1.5 inline" /> Juste une image
+                      </button>
+                    </div>
+                  </div>
+
+                  {style.mode === 'image' ? (
+                    <div>
+                      <Label className="flex items-center gap-1.5"><ImagePlus size={14} /> Image de couverture</Label>
+                      <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => onPickCoverFile(e.target.files?.[0])} />
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
+                          <ImagePlus size={15} /> {style.image ? 'Changer l’image' : 'Choisir une image'}
+                        </Button>
+                        {style.image && (
+                          <Button type="button" variant="ghost" className="text-red-600" onClick={() => set({ image: '' })}>
+                            <X size={15} /> Retirer
+                          </Button>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-stone-400">Tu recadres l’image, et le titre + l’auteur s’affichent par-dessus.</p>
+                    </div>
+                  ) : (
+                  <>
                   {/* Palette */}
                   <div>
                     <Label className="flex items-center gap-1.5"><Palette size={14} /> Palette</Label>
@@ -362,6 +407,8 @@ export function BookFormDialog({
                     </div>
                     <p className="mt-1 text-xs text-stone-400">Une image remplace le dégradé. 4 Mo max.</p>
                   </div>
+                  </>
+                  )}
                 </>
               )}
             </div>
@@ -372,6 +419,16 @@ export function BookFormDialog({
             <Button type="submit" disabled={saving}>{saving ? 'Enregistrement…' : initial ? 'Enregistrer' : 'Créer le livre'}</Button>
           </DialogFooter>
         </form>
+
+        {cropFile && (
+          <ImageCropper
+            file={cropFile}
+            aspect={2 / 3}
+            outWidth={800}
+            onCancel={() => setCropFile(null)}
+            onCropped={onCropped}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
