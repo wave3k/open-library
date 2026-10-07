@@ -86,10 +86,10 @@ export default function BibliothequePage() {
 
   const createBook = async (data: BookInput) => {
     try {
-      const created = await BooksAPI.create({ ...data, is_public: true })
+      const created = await BooksAPI.create(data)
       prependMine(created)
       toast.success('Livre créé — écris ton premier chapitre !')
-      router.push(`/livres/${created.id}`)
+      router.push(`/livres/${created.id}/ecrire`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Création impossible.')
       throw err
@@ -168,17 +168,6 @@ export default function BibliothequePage() {
         )}
       </div>
 
-      {tab === 'explore' && (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-          Livres publiés par la communauté. Ouvre un livre pour le lire — seuls les propriétaires peuvent les modifier.
-        </p>
-      )}
-      {tab === 'for-you' && (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-          Recommandé pour toi à partir de tes <strong>genres préférés</strong>, de tes <strong>lectures</strong> et de tes <strong>likes</strong>. Chaque suggestion explique pourquoi.
-        </p>
-      )}
-
       {loadingBooks && sourceBooks.length === 0 ? (
         <div className="flex items-center justify-center gap-2 py-20 text-stone-500">
           <Loader2 size={20} className="animate-spin" /> Chargement…
@@ -240,9 +229,11 @@ export default function BibliothequePage() {
                   <div className="min-w-0 flex-1 py-0.5">
                     <div className="flex items-center gap-1.5">
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">{b.genre}</span>
-                      {!b.is_public && tab === 'mine' && (
+                      {chapterCount(b) === 0 ? (
+                        <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[11px] font-semibold text-stone-600">Brouillon</span>
+                      ) : !b.is_public && tab === 'mine' ? (
                         <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[11px] font-semibold text-stone-600">Privé</span>
-                      )}
+                      ) : null}
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleFav(b.id) }}
                         aria-label={isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}

@@ -2,15 +2,20 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Save, Eye, History, X, Loader2 } from 'lucide-react'
+import { useEditor, EditorContent, type Editor } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import {
+  ArrowLeft, Save, Eye, History, X, Loader2, Bold, Italic, Strikethrough,
+  Heading1, Heading2, List, ListOrdered, Quote, Code, Undo2, Redo2, PenLine,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { usePlume } from '@/components/plume-provider'
 import { BooksAPI, countWords } from '@/lib/plume'
+import { cn } from '@/lib/utils'
 
 const TITLE_MAX = 80
 
@@ -39,6 +44,53 @@ function fmtTime(iso: string | null): string {
   }
 }
 
+/** Convertit un ancien contenu texte brut en HTML si besoin. */
+function toHtml(content: string): string {
+  if (!content) return ''
+  if (/<[a-z][\s\S]*>/i.test(content)) return content
+  return content
+    .split('\n')
+    .map((line) => `<p>${line || '<br>'}</p>`)
+    .join('')
+}
+
+function ToolbarButton({ active, onClick, title, children }: { active?: boolean; onClick: () => void; title: string; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      aria-pressed={active}
+      className={cn('rounded-lg p-2 transition', active ? 'bg-amber-100 text-amber-900' : 'text-stone-500 hover:bg-stone-100 hover:text-stone-800')}
+    >
+      {children}
+    </button>
+  )
+}
+
+function Toolbar({ editor }: { editor: Editor | null }) {
+  if (!editor) return null
+  return (
+    <div className="bg-card sticky top-0 z-10 flex flex-wrap items-center gap-0.5 rounded-t-2xl border border-b-0 p-1.5">
+      <ToolbarButton active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} title="Gras (Ctrl+B)"><Bold size={16} /></ToolbarButton>
+      <ToolbarButton active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()} title="Italique (Ctrl+I)"><Italic size={16} /></ToolbarButton>
+      <ToolbarButton active={editor.isActive('strike')} onClick={() => editor.chain().focus().toggleStrike().run()} title="Barré"><Strikethrough size={16} /></ToolbarButton>
+      <span className="mx-1 h-5 w-px bg-stone-200" />
+      <ToolbarButton active={editor.isActive('heading', { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} title="Titre 1"><Heading1 size={16} /></ToolbarButton>
+      <ToolbarButton active={editor.isActive('heading', { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title="Titre 2"><Heading2 size={16} /></ToolbarButton>
+      <span className="mx-1 h-5 w-px bg-stone-200" />
+      <ToolbarButton active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()} title="Liste à puces"><List size={16} /></ToolbarButton>
+      <ToolbarButton active={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Liste numérotée"><ListOrdered size={16} /></ToolbarButton>
+      <ToolbarButton active={editor.isActive('blockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()} title="Citation"><Quote size={16} /></ToolbarButton>
+      <ToolbarButton active={editor.isActive('code')} onClick={() => editor.chain().focus().toggleCode().run()} title="Code"><Code size={16} /></ToolbarButton>
+      <span className="mx-1 h-5 w-px bg-stone-200" />
+      <ToolbarButton onClick={() => editor.chain().focus().undo().run()} title="Annuler"><Undo2 size={16} /></ToolbarButton>
+      <ToolbarButton onClick={() => editor.chain().focus().redo().run()} title="Rétablir"><Redo2 size={16} /></ToolbarButton>
+    </div>
+  )
+}
+
 export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId: string | 'new' }) {
   const router = useRouter()
   const { user, mine, applyBook, markProgress, loadingBooks } = usePlume()
@@ -47,11 +99,10 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
   const index = chapterId === 'new' ? (book?.chapters?.length ?? 0) : Math.max(0, (book?.chapters ?? []).findIndex((c) => c.id === chapterId))
 
   const baseTitle = chapter?.title ?? `Chapitre ${index + 1}`
-  const baseContent = chapter?.content ?? ''
+  const baseContent = toHtml(chapter?.content ?? '')
 
   const [restored] = useState(() => loadDraft(bookId, chapterId))
   const [title, setTitle] = useState(restored?.title || baseTitle)
-  const [content, setContent] = useState(restored?.content ?? baseContent)
   const [preview, setPreview] = useState(false)
   const [error, setError] = useState('')
   const [askLeave, setAskLeave] = useState(false)
@@ -59,50 +110,49 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
   const [saving, setSaving] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const dirty = title !== baseTitle || content !== baseContent
-  const words = countWords(content)
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: restored?.content || baseContent,
+    immediatelyRender: false,
+    editorProps: {
+      attributes: { class: 'tiptap min-h-full outline-none' },
+    },
+    onUpdate: () => setError(''),
+  })
 
+  const html = editor?.getHTML() ?? ''
+  const dirty = title !== baseTitle || (!!editor && html !== (baseContent || '<p></p>'))
+  const words = countWords(html)
+
+  // Autosauvegarde du brouillon
   useEffect(() => {
-    if (!dirty) return
+    if (!dirty || !editor) return
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => {
       try {
-        localStorage.setItem(draftKey(bookId, chapterId), JSON.stringify({ title, content, savedAt: new Date().toISOString() }))
+        localStorage.setItem(draftKey(bookId, chapterId), JSON.stringify({ title, content: html, savedAt: new Date().toISOString() }))
         setDraftAt(new Date().toISOString())
       } catch {
         // ignore
       }
-    }, 600)
-    return () => {
-      if (timer.current) clearTimeout(timer.current)
-    }
-  }, [title, content, dirty, bookId, chapterId])
+    }, 700)
+    return () => { if (timer.current) clearTimeout(timer.current) }
+  }, [title, html, dirty, bookId, chapterId, editor])
 
   const submit = async () => {
-    if (!content.trim()) {
-      setError('Écris quelques lignes avant d’enregistrer — même un brouillon mérite un début.')
-      return
-    }
-    if (countWords(content) < 5) {
-      setError('Un peu court pour un chapitre : écris au moins 5 mots.')
-      return
-    }
+    if (words < 1) { setError('Écris au moins un mot avant d’enregistrer.'); return }
     setError('')
     setSaving(true)
     try {
       const finalTitle = title.trim() || `Chapitre ${index + 1}`
       const updated =
         chapterId === 'new'
-          ? await BooksAPI.addChapter(bookId, { title: finalTitle, content })
-          : await BooksAPI.updateChapter(bookId, chapterId, { title: finalTitle, content })
+          ? await BooksAPI.addChapter(bookId, { title: finalTitle, content: html })
+          : await BooksAPI.updateChapter(bookId, chapterId, { title: finalTitle, content: html })
       applyBook(updated)
-      const saved = updated.chapters.find((c) => c.title === finalTitle && c.content === content)
+      const saved = updated.chapters.find((c) => c.title === finalTitle)
       if (saved) markProgress(bookId, saved.id)
-      try {
-        localStorage.removeItem(draftKey(bookId, chapterId))
-      } catch {
-        // ignore
-      }
+      try { localStorage.removeItem(draftKey(bookId, chapterId)) } catch { /* ignore */ }
       toast.success('Chapitre enregistré')
       router.push(`/livres/${bookId}`)
     } catch (err) {
@@ -112,17 +162,15 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
     }
   }
 
+  // Ctrl+S
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-        e.preventDefault()
-        submit()
-      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); submit() }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, content])
+  }, [title, html])
 
   if (!user) {
     return (
@@ -132,7 +180,6 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
       </div>
     )
   }
-
   if (!book && loadingBooks) {
     return (
       <div className="flex items-center justify-center gap-2 py-20 text-stone-500">
@@ -140,7 +187,6 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
       </div>
     )
   }
-
   if (!book || book.owner_id !== user.id) {
     return (
       <div className="py-20 text-center">
@@ -149,7 +195,6 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
       </div>
     )
   }
-
   if (chapterId !== 'new' && !chapter) {
     return (
       <div className="py-20 text-center">
@@ -160,13 +205,9 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
   }
 
   const discardDraft = () => {
-    try {
-      localStorage.removeItem(draftKey(bookId, chapterId))
-    } catch {
-      // ignore
-    }
+    try { localStorage.removeItem(draftKey(bookId, chapterId)) } catch { /* ignore */ }
     setTitle(baseTitle)
-    setContent(baseContent)
+    editor?.commands.setContent(baseContent || '')
     setDraftAt(null)
   }
 
@@ -174,10 +215,7 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <button
-          onClick={() => {
-            if (dirty && content.trim()) setAskLeave(true)
-            else router.push(`/livres/${bookId}`)
-          }}
+          onClick={() => { if (dirty && words > 0) setAskLeave(true); else router.push(`/livres/${bookId}`) }}
           className="flex items-center gap-1.5 text-sm font-medium text-stone-500 hover:text-stone-800"
         >
           <ArrowLeft size={16} /> {book.title}
@@ -212,42 +250,24 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
           <Label htmlFor="ch-title">Titre du chapitre</Label>
           <span className="text-[11px] tabular-nums text-stone-400">{title.trim().length}/{TITLE_MAX}</span>
         </div>
-        <Input
-          id="ch-title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={120}
-          placeholder="Titre du chapitre"
-          className="py-3 text-lg font-bold"
-        />
-        {!title.trim() && <p className="mt-1 text-xs font-medium text-red-600">Le titre ne peut pas être vide.</p>}
+        <Input id="ch-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="Titre du chapitre" className="py-3 text-lg font-bold" />
       </div>
 
       {preview ? (
-        <div className="rounded-2xl border bg-[#fdf8ee] p-8 shadow-inner">
-          <h3 className="mb-6 text-center text-xl font-bold text-stone-900">{title || `Chapitre ${index + 1}`}</h3>
-          <div className="book-page mx-auto max-w-2xl text-[17px] text-stone-800">
-            {content.split('\n').map((p, i) => (
-              <p key={i}>{p || ' '}</p>
-            ))}
-          </div>
+        <div className="bg-card rounded-2xl border p-8">
+          <h3 className="mb-6 text-center text-xl font-bold">{title || `Chapitre ${index + 1}`}</h3>
+          <div className="book-prose book-page mx-auto max-w-2xl text-[17px]" dangerouslySetInnerHTML={{ __html: html || '<p><em>Rien à prévisualiser.</em></p>' }} />
         </div>
       ) : (
         <div>
-          <div className="mb-1"><Label htmlFor="ch-content">Texte</Label></div>
-          <Textarea
-            id="ch-content"
-            value={content}
-            onChange={(e) => { setContent(e.target.value); setError('') }}
-            rows={18}
-            placeholder="Il était une fois…"
-            aria-invalid={!!error}
-            className={`bg-card p-5 font-mono text-sm leading-relaxed ${error ? 'border-red-400' : ''}`}
-          />
+          <Toolbar editor={editor} />
+          <div className="bg-card h-[60vh] overflow-y-auto rounded-b-2xl border p-5">
+            <EditorContent editor={editor} />
+          </div>
           {error ? (
             <p className="mt-1 text-xs font-medium text-red-600" role="alert">{error}</p>
           ) : (
-            <p className="mt-1 text-xs text-stone-400">Astuce : Ctrl+S pour enregistrer. Sépare les paragraphes avec une ligne vide.</p>
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-stone-400"><PenLine size={12} /> Astuce : Ctrl+S pour enregistrer.</p>
           )}
         </div>
       )}

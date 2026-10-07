@@ -22,12 +22,25 @@ export function download(filename: string, text: string) {
   URL.revokeObjectURL(url)
 }
 
+function stripHtml(html: string): string {
+  return String(html ?? '')
+    .replace(/<\/(p|div|h1|h2|h3|li|blockquote|pre)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 function bookToText(book: Book): string {
   const lines: string[] = [book.title, `par ${book.author}`, book.genre, '']
   if (book.description) lines.push(book.description, '')
   lines.push('— — —', '')
   for (const ch of book.chapters ?? []) {
-    lines.push(ch.title || 'Sans titre', '', ch.content || '', '', '')
+    lines.push(ch.title || 'Sans titre', '', stripHtml(ch.content), '', '')
   }
   return lines.join('\n')
 }
@@ -37,7 +50,7 @@ function bookToMarkdown(book: Book): string {
   if (book.description) lines.push(`> ${book.description}`, '')
   lines.push('---')
   for (const ch of book.chapters ?? []) {
-    lines.push('', `## ${ch.title || 'Sans titre'}`, '', ch.content || '', '')
+    lines.push('', `## ${ch.title || 'Sans titre'}`, '', stripHtml(ch.content), '')
   }
   return lines.join('\n')
 }

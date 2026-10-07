@@ -115,6 +115,7 @@ async function loadCandidates(db, userId) {
               (SELECT COUNT(*) FROM chapters ch WHERE ch.book_id = b.id) AS chapter_count
        FROM books b LEFT JOIN users u ON u.id = b.owner_id
        WHERE b.is_public = 1 AND b.owner_id != ?
+         AND EXISTS (SELECT 1 FROM chapters c WHERE c.book_id = b.id)
        ORDER BY b.updated_at DESC LIMIT 200`
     )
     .bind(userId)

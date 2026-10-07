@@ -194,11 +194,7 @@ export default function ReaderPage() {
                 <span>❦</span>
                 <div className="h-px flex-1 bg-current" />
               </div>
-              <div className="book-page" style={{ fontSize }}>
-                {chapter.content.split('\n').map((p, i) => (
-                  <p key={i}>{p || ' '}</p>
-                ))}
-              </div>
+              <div className="book-page book-prose" style={{ fontSize }} dangerouslySetInnerHTML={{ __html: chapter.content || '<p></p>' }} />
               <p className="mt-10 text-center text-sm opacity-50">— {safeIdx + 1} —</p>
             </div>
           </div>

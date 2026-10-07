@@ -55,6 +55,7 @@ export function publicProfile(row, { self = false } = {}) {
     avatar_emoji: row.avatar_emoji || '',
     avatar_color: row.avatar_color || 'amber',
     avatar_image: row.avatar_image || '',
+    banner_image: row.banner_image || '',
     preferences: parseJsonArr(row.preferences),
     onboarded: row.onboarded === 1,
     created_at: row.created_at,

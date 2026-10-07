@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { Loader2, ImagePlus, X, Check } from 'lucide-react'
-import { toast } from 'sonner'
+import { useEffect, useState } from 'react'
+import { Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -16,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar } from '@/components/avatar'
-import { AuthAPI, COVERS, EMOJI_CHOICES, GENRES, MediaAPI, type User } from '@/lib/plume'
+import { AuthAPI, COVERS, EMOJI_CHOICES, GENRES, ProfileAPI, type User } from '@/lib/plume'
 import { cn } from '@/lib/utils'
 
 const USERNAME_RE = /^[a-z0-9_]{3,24}$/
@@ -37,13 +36,10 @@ export function ProfileEditDialog({
   const [bio, setBio] = useState(user.bio ?? '')
   const [emoji, setEmoji] = useState(user.avatar_emoji ?? '')
   const [color, setColor] = useState(user.avatar_color ?? 'amber')
-  const [image, setImage] = useState(user.avatar_image ?? '')
   const [prefs, setPrefs] = useState<string[]>(user.preferences ?? [])
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [available, setAvailable] = useState<boolean | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (username === user.username || !USERNAME_RE.test(username)) {
@@ -62,21 +58,6 @@ export function ProfileEditDialog({
     return () => clearTimeout(t)
   }, [username, user.username])
 
-  const onPickAvatar = async (file: File | undefined) => {
-    if (!file) return
-    setUploading(true)
-    try {
-      const { url } = await MediaAPI.upload(file)
-      setImage(url)
-      setEmoji('')
-      toast.success('Photo de profil mise à jour')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Envoi impossible.')
-    } finally {
-      setUploading(false)
-    }
-  }
-
   const save = async () => {
     setError('')
     if (displayName.trim().length < 2) return setError('Le nom d’affichage doit faire au moins 2 caractères.')
@@ -84,9 +65,14 @@ export function ProfileEditDialog({
     if (available === false) return setError('Ce nom d’utilisateur est déjà pris.')
     setSaving(true)
     try {
-      const { user: u } = await ProfileAPIUpdate({ displayName, username, bio, emoji, color, image, prefs })
-      if (!u) throw new Error('Erreur')
-      toast.success('Profil mis à jour')
+      await ProfileAPI.update({
+        display_name: displayName.trim(),
+        username,
+        bio,
+        avatar_emoji: emoji,
+        avatar_color: color,
+        preferences: prefs,
+      })
       onSaved()
       onClose()
     } catch (err) {
@@ -101,24 +87,12 @@ export function ProfileEditDialog({
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Modifier mon profil</DialogTitle>
-          <DialogDescription>Ton identité publique sur Open Library.</DialogDescription>
+          <DialogDescription>Ton identité publique. La photo et la bannière se changent au survol sur ton profil.</DialogDescription>
         </DialogHeader>
 
         <div className="flex items-center gap-4">
-          <Avatar user={{ display_name: displayName, avatar_emoji: emoji, avatar_color: color, avatar_image: image }} size={64} />
-          <div className="flex-1">
-            <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={(e) => onPickAvatar(e.target.files?.[0])} />
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-                {uploading ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />} Photo
-              </Button>
-              {image && (
-                <Button type="button" variant="ghost" size="sm" className="text-red-600" onClick={() => setImage('')}>
-                  <X size={14} /> Retirer
-                </Button>
-              )}
-            </div>
-          </div>
+          <Avatar user={{ display_name: displayName, avatar_emoji: emoji, avatar_color: color, avatar_image: '' }} size={64} />
+          <p className="text-muted-foreground text-xs">Astuce : survole ta photo ou ta bannière sur ton profil pour les recadrer et les changer.</p>
         </div>
 
         <div className="space-y-3.5">
@@ -146,28 +120,25 @@ export function ProfileEditDialog({
             <Textarea id="pf-bio" value={bio} onChange={(e) => setBio(e.target.value)} rows={3} maxLength={300} placeholder="Parle de toi et de ce que tu écris…" />
           </div>
 
-          {!image && (
-            <>
-              <div>
-                <Label>Couleur d’avatar</Label>
-                <div className="mt-1.5 flex flex-wrap gap-2">
-                  {COVERS.map((c) => (
-                    <button key={c.id} type="button" onClick={() => setColor(c.id)} aria-label={c.id}
-                      className={cn('h-8 w-8 rounded-full bg-gradient-to-br', c.bg, color === c.id && 'ring-2 ring-amber-600 ring-offset-2')} />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <Label>Emoji d’avatar</Label>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={8} placeholder="🙂" className="h-9 w-14 rounded-md border border-stone-200 text-center text-lg" />
-                  {EMOJI_CHOICES.slice(0, 16).map((em) => (
-                    <button key={em} type="button" onClick={() => setEmoji(em)} className={cn('h-8 w-8 rounded-md text-lg hover:bg-stone-100', emoji === em && 'bg-amber-100')}>{em}</button>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
+          <div>
+            <Label>Couleur d’avatar</Label>
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              {COVERS.map((c) => (
+                <button key={c.id} type="button" onClick={() => setColor(c.id)} aria-label={c.id}
+                  className={cn('h-8 w-8 rounded-full bg-gradient-to-br', c.bg, color === c.id && 'ring-2 ring-amber-600 ring-offset-2')} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <Label>Emoji d’avatar</Label>
+            <p className="mb-1.5 text-xs text-stone-400">Utilisé si aucune photo n’est définie.</p>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={8} placeholder="🙂" className="h-9 w-14 rounded-md border border-stone-200 text-center text-lg" />
+              {EMOJI_CHOICES.slice(0, 16).map((em) => (
+                <button key={em} type="button" onClick={() => setEmoji(em)} className={cn('h-8 w-8 rounded-md text-lg hover:bg-stone-100', emoji === em && 'bg-amber-100')}>{em}</button>
+              ))}
+            </div>
+          </div>
 
           <div>
             <Label>Genres préférés</Label>
@@ -195,26 +166,4 @@ export function ProfileEditDialog({
       </DialogContent>
     </Dialog>
   )
-}
-
-// Petit wrapper local pour éviter un import circulaire dans le JSX
-async function ProfileAPIUpdate(p: {
-  displayName: string
-  username: string
-  bio: string
-  emoji: string
-  color: string
-  image: string
-  prefs: string[]
-}) {
-  const { ProfileAPI } = await import('@/lib/plume')
-  return ProfileAPI.update({
-    display_name: p.displayName.trim(),
-    username: p.username,
-    bio: p.bio,
-    avatar_emoji: p.emoji,
-    avatar_color: p.color,
-    avatar_image: p.image,
-    preferences: p.prefs,
-  })
 }

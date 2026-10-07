@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { ImagePlus, Loader2, Plus, X, Sparkles, Type, Palette, LayoutTemplate, Tags } from 'lucide-react'
+import { ImagePlus, Loader2, Plus, X, Sparkles, Type, Palette, LayoutTemplate, Tags, Globe, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -84,6 +84,7 @@ export function BookFormDialog({
   const [description, setDescription] = useState(initial?.description ?? '')
   const [tags, setTags] = useState<string[]>(initial?.tags ?? [])
   const [tagInput, setTagInput] = useState('')
+  const [isPublic, setIsPublic] = useState(initial?.is_public ?? true)
   const [style, setStyle] = useState<Partial<CoverStyle>>({
     preset: initial?.cover_style?.preset ?? initial?.cover ?? 'indigo',
     font: initial?.cover_style?.font ?? 'serif',
@@ -147,6 +148,7 @@ export function BookFormDialog({
         cover: style.preset ?? 'indigo',
         cover_style: style,
         tags,
+        is_public: isPublic,
       })
       onClose()
     } finally {
@@ -245,6 +247,30 @@ export function BookFormDialog({
                         ))}
                       </div>
                     )}
+                  </div>
+
+                  {/* Visibilité */}
+                  <div>
+                    <Label>Visibilité</Label>
+                    <div className="mt-1.5 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsPublic(true)}
+                        aria-pressed={isPublic}
+                        className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium ${isPublic ? 'border-amber-600 bg-amber-50 text-amber-900' : 'border-stone-200 hover:bg-stone-50'}`}
+                      >
+                        <Globe size={15} /> Public
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsPublic(false)}
+                        aria-pressed={!isPublic}
+                        className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium ${!isPublic ? 'border-amber-600 bg-amber-50 text-amber-900' : 'border-stone-200 hover:bg-stone-50'}`}
+                      >
+                        <Lock size={15} /> Privé
+                      </button>
+                    </div>
+                    <p className="mt-1 text-xs text-stone-400">Un livre n’est visible des autres qu’une fois publié ET public. Sans chapitre, il reste en brouillon.</p>
                   </div>
                 </>
               ) : (

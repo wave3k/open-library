@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MessageSquare, Send, Trash2, Loader2 } from 'lucide-react'
+import { MessageSquare, Send, Trash2, Loader2, Heart } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -82,6 +82,17 @@ export function CommentsSection({
     }
   }
 
+  const toggleLike = async (c: Comment) => {
+    const next = !c.liked
+    setComments((prev) => prev.map((x) => (x.id === c.id ? { ...x, liked: next, likes: x.likes + (next ? 1 : -1) } : x)))
+    try {
+      const res = next ? await BooksAPI.likeComment(bookId, c.id) : await BooksAPI.unlikeComment(bookId, c.id)
+      setComments((prev) => prev.map((x) => (x.id === c.id ? { ...x, liked: res.liked, likes: res.likes } : x)))
+    } catch {
+      setComments((prev) => prev.map((x) => (x.id === c.id ? { ...x, liked: c.liked, likes: c.likes } : x)))
+    }
+  }
+
   return (
     <div className="bg-card rounded-2xl border p-5">
       <h3 className="flex items-center gap-2 font-bold">
@@ -133,11 +144,22 @@ export function CommentsSection({
                       {c.author.display_name}
                     </button>
                     <span className="text-xs text-stone-400">{timeAgo(c.created_at)}</span>
-                    {canDelete && (
-                      <button onClick={() => remove(c.id)} className="ml-auto rounded p-1 text-stone-300 hover:bg-red-50 hover:text-red-600" aria-label="Supprimer le commentaire">
-                        <Trash2 size={14} />
+                    <div className="ml-auto flex items-center gap-2">
+                      <button
+                        onClick={() => user && toggleLike(c)}
+                        disabled={!user}
+                        aria-pressed={c.liked}
+                        aria-label={c.liked ? 'Retirer le like' : 'Aimer ce commentaire'}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold transition ${c.liked ? 'text-red-500' : 'text-stone-400 hover:text-red-400'} disabled:opacity-50`}
+                      >
+                        <Heart size={13} fill={c.liked ? 'currentColor' : 'none'} /> {c.likes}
                       </button>
-                    )}
+                      {canDelete && (
+                        <button onClick={() => remove(c.id)} className="rounded p-1 text-stone-300 hover:bg-red-50 hover:text-red-600" aria-label="Supprimer le commentaire">
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <p className="mt-0.5 whitespace-pre-line text-sm text-stone-700">{c.content}</p>
                 </div>

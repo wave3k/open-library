@@ -57,6 +57,12 @@ function parseObj(v, fallback = {}) {
   }
 }
 
+/** Nombre de mots dans du HTML ou du texte brut. */
+function wordCountOf(html) {
+  const text = String(html ?? '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ')
+  return text.trim().split(/\s+/).filter(Boolean).length
+}
+
 async function currentUser(db, req) {
   const auth = req.headers.get('Authorization') || ''
   const m = auth.match(/^Bearer\s+(.+)$/i)
@@ -172,13 +178,19 @@ function cleanBookInput(body, partial = false) {
 
 async function profileStats(db, userId) {
   const books = await db
-    .prepare('SELECT COUNT(*) AS n, COALESCE(SUM(views),0) AS views, COALESCE(SUM(impressions),0) AS impressions FROM books WHERE owner_id = ?')
+    .prepare(
+      `SELECT COUNT(*) AS n,
+              COALESCE(SUM(views),0) AS views,
+              COALESCE(SUM(impressions),0) AS impressions,
+              COALESCE(SUM(CASE WHEN EXISTS (SELECT 1 FROM chapters c WHERE c.book_id = books.id) THEN 1 ELSE 0 END),0) AS published
+       FROM books WHERE owner_id = ?`
+    )
     .bind(userId)
     .first()
   const words = await db
     .prepare(
-      `SELECT COALESCE(SUM(LENGTH(c.content) - LENGTH(REPLACE(c.content,' ','')) + 1),0) AS w
-       FROM chapters c JOIN books b ON b.id = c.book_id WHERE b.owner_id = ? AND LENGTH(TRIM(c.content)) > 0`
+      `SELECT COALESCE(SUM(c.word_count),0) AS w
+       FROM chapters c JOIN books b ON b.id = c.book_id WHERE b.owner_id = ?`
     )
     .bind(userId)
     .first()
@@ -190,12 +202,25 @@ async function profileStats(db, userId) {
     .prepare('SELECT COUNT(*) AS n FROM comments c JOIN books b ON b.id = c.book_id WHERE b.owner_id = ?')
     .bind(userId)
     .first()
+  const commentLikes = await db
+    .prepare('SELECT COUNT(*) AS n FROM comment_likes cl JOIN comments c ON c.id = cl.comment_id WHERE c.user_id = ?')
+    .bind(userId)
+    .first()
+  const chapters = await db
+    .prepare('SELECT COUNT(*) AS n FROM chapters c JOIN books b ON b.id = c.book_id WHERE b.owner_id = ?')
+    .bind(userId)
+    .first()
   return {
     books: books?.n ?? 0,
+    published: books?.published ?? 0,
+    drafts: (books?.n ?? 0) - (books?.published ?? 0),
+    chapters: chapters?.n ?? 0,
     words: words?.w ?? 0,
     views: books?.views ?? 0,
     impressions: books?.impressions ?? 0,
     likes: likes?.n ?? 0,
+    commentLikes: commentLikes?.n ?? 0,
+    likesReceived: (likes?.n ?? 0) + (commentLikes?.n ?? 0),
     comments: comments?.n ?? 0,
   }
 }
@@ -335,6 +360,11 @@ export default {
           sets.push('avatar_image = ?')
           vals.push(/^(\/api\/media\/|https?:\/\/)/.test(img) ? img.slice(0, 500) : '')
         }
+        if (body.banner_image !== undefined) {
+          const img = String(body.banner_image)
+          sets.push('banner_image = ?')
+          vals.push(/^(\/api\/media\/|https?:\/\/)/.test(img) ? img.slice(0, 500) : '')
+        }
         if (body.preferences !== undefined) {
           sets.push('preferences = ?')
           vals.push(JSON.stringify(cleanTags(body.preferences).filter((g) => GENRES.includes(g)).slice(0, 7)))
@@ -371,7 +401,7 @@ export default {
         const isSelf = me && me.id === row.id
         const stats = await profileStats(db, row.id)
         const res = await db
-          .prepare(`${BOOK_SELECT} WHERE b.owner_id = ? ${isSelf ? '' : 'AND b.is_public = 1'} ORDER BY b.updated_at DESC`)
+          .prepare(`${BOOK_SELECT} WHERE b.owner_id = ? ${isSelf ? '' : 'AND b.is_public = 1 AND EXISTS (SELECT 1 FROM chapters ch WHERE ch.book_id = b.id)'} ORDER BY b.updated_at DESC`)
           .bind(row.id)
           .all()
         const books = []
@@ -411,6 +441,54 @@ export default {
         return json({ ok: true })
       }
 
+      // ---------- ANALYTICS (propriétaire uniquement) ----------
+      if (req.method === 'GET' && path === '/api/analytics') {
+        const summary = await profileStats(db, me.id)
+        const res = await db
+          .prepare(
+            `SELECT b.id, b.title, b.genre, b.is_public, b.cover, b.cover_style, b.updated_at,
+                    (SELECT COUNT(*) FROM chapters c WHERE c.book_id = b.id) AS chapters,
+                    (SELECT COALESCE(SUM(c.word_count),0) FROM chapters c WHERE c.book_id = b.id) AS words,
+                    b.views, b.impressions,
+                    (SELECT COUNT(*) FROM likes l WHERE l.book_id = b.id) AS likes,
+                    (SELECT COUNT(*) FROM comments cm WHERE cm.book_id = b.id) AS comments
+             FROM books b WHERE b.owner_id = ? ORDER BY b.views DESC`
+          )
+          .bind(me.id)
+          .all()
+        const days = 30
+        const since = new Date(Date.now() - days * 86400000).toISOString()
+        const [bookLikes, commLikes] = await Promise.all([
+          db.prepare('SELECT substr(l.created_at,1,10) AS day, COUNT(*) AS n FROM likes l JOIN books b ON b.id = l.book_id WHERE b.owner_id = ? AND l.created_at >= ? GROUP BY day').bind(me.id, since).all(),
+          db.prepare('SELECT substr(cl.created_at,1,10) AS day, COUNT(*) AS n FROM comment_likes cl JOIN comments c ON c.id = cl.comment_id WHERE c.user_id = ? AND cl.created_at >= ? GROUP BY day').bind(me.id, since).all(),
+        ])
+        const byDay = new Map()
+        for (let i = days - 1; i >= 0; i--) {
+          const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+          byDay.set(d, 0)
+        }
+        for (const r of bookLikes.results || []) if (byDay.has(r.day)) byDay.set(r.day, (byDay.get(r.day) || 0) + r.n)
+        for (const r of commLikes.results || []) if (byDay.has(r.day)) byDay.set(r.day, (byDay.get(r.day) || 0) + r.n)
+        const likesTrend = [...byDay.entries()].map(([day, n]) => ({ day, likes: n }))
+        return json({
+          summary,
+          books: (res.results || []).map((b) => ({
+            id: b.id,
+            title: b.title,
+            genre: b.genre,
+            is_public: b.is_public === 1,
+            published: (b.chapters || 0) > 0,
+            chapters: b.chapters || 0,
+            words: b.words || 0,
+            views: b.views || 0,
+            impressions: b.impressions || 0,
+            likes: b.likes || 0,
+            comments: b.comments || 0,
+          })),
+          likesTrend,
+        })
+      }
+
       // ---------- RECOMMANDATIONS ----------
       if (req.method === 'GET' && path === '/api/recommendations') {
         const limit = Math.min(30, Math.max(1, parseInt(url.searchParams.get('limit') || '12', 10)))
@@ -437,7 +515,7 @@ export default {
         let rows
         if (scope === 'explore') {
           const res = await db
-            .prepare(`${BOOK_SELECT} WHERE b.is_public = 1 AND b.owner_id != ? ORDER BY b.updated_at DESC LIMIT 100`)
+            .prepare(`${BOOK_SELECT} WHERE b.is_public = 1 AND b.owner_id != ? AND EXISTS (SELECT 1 FROM chapters ch WHERE ch.book_id = b.id) ORDER BY b.updated_at DESC LIMIT 100`)
             .bind(me.id)
             .all()
           rows = res.results || []
@@ -494,8 +572,8 @@ export default {
           chs.forEach((c, i) => {
             stmts.push(
               db
-                .prepare('INSERT INTO chapters (id, book_id, title, content, position, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
-                .bind(crypto.randomUUID(), bookId, String(c.title || `Chapitre ${i + 1}`).slice(0, 80), String(c.content || ''), i, now)
+                .prepare('INSERT INTO chapters (id, book_id, title, content, position, updated_at, word_count) VALUES (?, ?, ?, ?, ?, ?, ?)')
+                .bind(crypto.randomUUID(), bookId, String(c.title || `Chapitre ${i + 1}`).slice(0, 80), String(c.content || ''), i, now, wordCountOf(c.content))
             )
           })
         }
@@ -547,17 +625,21 @@ export default {
             const res = await db
               .prepare(
                 `SELECT c.id, c.content, c.created_at, c.user_id,
-                        u.username, u.display_name, u.name, u.avatar_emoji, u.avatar_color, u.avatar_image
+                        u.username, u.display_name, u.name, u.avatar_emoji, u.avatar_color, u.avatar_image,
+                        (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.id) AS like_count,
+                        (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.id AND cl.user_id = ?) AS liked_by_me
                  FROM comments c JOIN users u ON u.id = c.user_id
                  WHERE c.book_id = ? ORDER BY c.created_at DESC LIMIT 200`
               )
-              .bind(bookId)
+              .bind(me.id, bookId)
               .all()
             const comments = (res.results || []).map((c) => ({
               id: c.id,
               content: c.content,
               created_at: c.created_at,
               user_id: c.user_id,
+              likes: c.like_count || 0,
+              liked: (c.liked_by_me || 0) > 0,
               author: {
                 id: c.user_id,
                 username: c.username,
@@ -580,6 +662,24 @@ export default {
               .run()
             return json({ ok: true, id }, 201)
           }
+        }
+
+        const commLikeMatch = rest.match(/^\/comments\/([^/]+)\/like$/)
+        if (commLikeMatch) {
+          const cid = commLikeMatch[1]
+          const exists = await db.prepare('SELECT id FROM comments WHERE id = ? AND book_id = ?').bind(cid, bookId).first()
+          if (!exists) return json({ error: 'Commentaire introuvable.' }, 404)
+          if (req.method === 'POST') {
+            await db
+              .prepare('INSERT OR IGNORE INTO comment_likes (comment_id, user_id, created_at) VALUES (?, ?, ?)')
+              .bind(cid, me.id, new Date().toISOString())
+              .run()
+          } else if (req.method === 'DELETE') {
+            await db.prepare('DELETE FROM comment_likes WHERE comment_id = ? AND user_id = ?').bind(cid, me.id).run()
+          }
+          const n = await db.prepare('SELECT COUNT(*) AS n FROM comment_likes WHERE comment_id = ?').bind(cid).first()
+          const liked = await db.prepare('SELECT 1 FROM comment_likes WHERE comment_id = ? AND user_id = ?').bind(cid, me.id).first()
+          return json({ likes: n?.n ?? 0, liked: !!liked })
         }
 
         const commMatch = rest.match(/^\/comments\/([^/]+)$/)
@@ -625,15 +725,15 @@ export default {
           const body = (await readJson(req)) || {}
           const title = String(body.title ?? '').trim().slice(0, 80) || 'Sans titre'
           const content = String(body.content ?? '')
-          if (!content.trim() || content.trim().split(/\s+/).length < 5) {
-            return json({ error: 'Écris au moins 5 mots avant d’enregistrer.' }, 400)
+          if (wordCountOf(content) < 1) {
+            return json({ error: 'Écris au moins un mot avant d’enregistrer.' }, 400)
           }
           const max = await db.prepare('SELECT MAX(position) AS m FROM chapters WHERE book_id = ?').bind(bookId).first()
           const pos = (max?.m ?? -1) + 1
           const now = new Date().toISOString()
           await db
-            .prepare('INSERT INTO chapters (id, book_id, title, content, position, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
-            .bind(crypto.randomUUID(), bookId, title, content, pos, now)
+            .prepare('INSERT INTO chapters (id, book_id, title, content, position, updated_at, word_count) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            .bind(crypto.randomUUID(), bookId, title, content, pos, now, wordCountOf(content))
             .run()
           await db.prepare('UPDATE books SET updated_at = ? WHERE id = ?').bind(now, bookId).run()
           return json({ book: await loadBook(db, bookId) }, 201)
@@ -662,8 +762,8 @@ export default {
             const content = String(body.content ?? '')
             const now = new Date().toISOString()
             const r = await db
-              .prepare('UPDATE chapters SET title = ?, content = ?, updated_at = ? WHERE id = ? AND book_id = ?')
-              .bind(title, content, now, chId, bookId)
+              .prepare('UPDATE chapters SET title = ?, content = ?, updated_at = ?, word_count = ? WHERE id = ? AND book_id = ?')
+              .bind(title, content, now, wordCountOf(content), chId, bookId)
               .run()
             if (!r.meta.changes) return json({ error: 'Chapitre introuvable.' }, 404)
             await db.prepare('UPDATE books SET updated_at = ? WHERE id = ?').bind(now, bookId).run()

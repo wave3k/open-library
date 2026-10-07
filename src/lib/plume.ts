@@ -63,6 +63,7 @@ export interface User {
   avatar_emoji: string
   avatar_color: string
   avatar_image: string
+  banner_image: string
   preferences: string[]
   onboarded: boolean
   created_at: string
@@ -72,10 +73,15 @@ export interface User {
 
 export interface ProfileStats {
   books: number
+  published: number
+  drafts: number
+  chapters: number
   words: number
   views: number
   impressions: number
   likes: number
+  commentLikes: number
+  likesReceived: number
   comments: number
 }
 
@@ -84,7 +90,29 @@ export interface Comment {
   content: string
   created_at: string
   user_id: string
+  likes: number
+  liked: boolean
   author: AuthorRef
+}
+
+export interface AnalyticsBook {
+  id: string
+  title: string
+  genre: string
+  is_public: boolean
+  published: boolean
+  chapters: number
+  words: number
+  views: number
+  impressions: number
+  likes: number
+  comments: number
+}
+
+export interface Analytics {
+  summary: ProfileStats
+  books: AnalyticsBook[]
+  likesTrend: { day: string; likes: number }[]
 }
 
 export const GENRES = ['Fantastique', 'Romance', 'Science-Fiction', 'Policier', 'Aventure', 'Horreur', 'Poésie']
@@ -258,12 +286,20 @@ export const BooksAPI = {
     request<{ ok: boolean; id: string }>(`/api/books/${bookId}/comments`, { method: 'POST', body: { content } }),
   removeComment: (bookId: string, commentId: string) =>
     request<{ ok: boolean }>(`/api/books/${bookId}/comments/${commentId}`, { method: 'DELETE' }),
+  likeComment: (bookId: string, commentId: string) =>
+    request<{ likes: number; liked: boolean }>(`/api/books/${bookId}/comments/${commentId}/like`, { method: 'POST' }),
+  unlikeComment: (bookId: string, commentId: string) =>
+    request<{ likes: number; liked: boolean }>(`/api/books/${bookId}/comments/${commentId}/like`, { method: 'DELETE' }),
+}
+
+export const AnalyticsAPI = {
+  get: () => request<Analytics>('/api/analytics'),
 }
 
 export const ProfileAPI = {
   get: (username: string) =>
     request<{ user: User; stats: ProfileStats; books: Book[] }>(`/api/users/${encodeURIComponent(username)}`),
-  update: (p: Partial<Pick<User, 'display_name' | 'username' | 'bio' | 'avatar_emoji' | 'avatar_color' | 'avatar_image' | 'preferences' | 'referral_source' | 'onboarded'>>) =>
+  update: (p: Partial<Pick<User, 'display_name' | 'username' | 'bio' | 'avatar_emoji' | 'avatar_color' | 'avatar_image' | 'banner_image' | 'preferences' | 'referral_source' | 'onboarded'>>) =>
     request<{ user: User; stats: ProfileStats }>('/api/profile', { method: 'PUT', body: p }),
   changePassword: (current_password: string, new_password: string) =>
     request<{ ok: boolean }>('/api/profile/password', { method: 'POST', body: { current_password, new_password } }),
@@ -272,11 +308,11 @@ export const ProfileAPI = {
 
 export const MediaAPI = {
   /** Envoie une image (binaire brut) au Worker qui la stocke dans R2. */
-  upload: async (file: File): Promise<{ url: string }> => {
-    const headers: Record<string, string> = { 'Content-Type': file.type || 'application/octet-stream' }
+  upload: async (blob: Blob): Promise<{ url: string }> => {
+    const headers: Record<string, string> = { 'Content-Type': blob.type || 'image/jpeg' }
     const t = getToken()
     if (t) headers.Authorization = `Bearer ${t}`
-    const res = await fetch(`${API_URL}/api/upload`, { method: 'POST', headers, body: file })
+    const res = await fetch(`${API_URL}/api/upload`, { method: 'POST', headers, body: blob })
     const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string }
     if (!res.ok) throw new Error(data.error || 'Envoi de l’image impossible.')
     return { url: data.url as string }
@@ -285,7 +321,8 @@ export const MediaAPI = {
 
 export function countWords(text: string | undefined | null = ''): number {
   if (typeof text !== 'string') return 0
-  return text.trim().split(/\s+/).filter(Boolean).length
+  const plain = text.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ')
+  return plain.trim().split(/\s+/).filter(Boolean).length
 }
 
 export function bookWords(book: { chapters?: Chapter[] }): number {
