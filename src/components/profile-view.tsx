@@ -92,6 +92,7 @@ export function ProfileView({ username }: { username?: string }) {
   const toggleFollow = async () => {
     const handle = profile?.username
     if (!handle) return
+    if (!me) { router.push(`/connexion?next=${encodeURIComponent(`/u/${handle}`)}`); return }
     setFollowBusy(true)
     const next = !isFollowing
     setIsFollowing(next)
@@ -112,18 +113,26 @@ export function ProfileView({ username }: { username?: string }) {
   const stats: ProfileStats | null = isSelf ? myStats : remote?.stats ?? null
   const books: Book[] = isSelf ? myBooks : remote?.books ?? []
 
-  if (!me) {
+  if (isSelf && !me) {
     return (
       <div className="py-20 text-center">
-        <p className="font-semibold">Connecte-toi pour voir les profils.</p>
+        <p className="font-semibold">Connecte-toi pour voir ton profil.</p>
         <a href="/connexion" className="mt-4 inline-block rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white">Se connecter</a>
       </div>
     )
   }
-  if (loading || !profile) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 py-20 text-stone-500">
         <Loader2 size={20} className="animate-spin" /> Chargement du profil…
+      </div>
+    )
+  }
+  if (!profile) {
+    return (
+      <div className="py-20 text-center">
+        <p className="font-semibold">Profil introuvable.</p>
+        <a href="/recherche" className="mt-4 inline-block rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold">Parcourir les livres</a>
       </div>
     )
   }
