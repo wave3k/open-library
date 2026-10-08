@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar } from '@/components/avatar'
 import { usePlume } from '@/components/plume-provider'
-import { BooksAPI, type Comment } from '@/lib/plume'
+import { BooksAPI, PublicAPI, type Comment } from '@/lib/plume'
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -40,7 +40,7 @@ export function CommentsSection({
 
   const load = async () => {
     try {
-      const list = await BooksAPI.comments(bookId)
+      const list = await PublicAPI.comments(bookId)
       setComments(list)
       onCountChange?.(list.length)
     } catch {

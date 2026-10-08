@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { BookCover } from '@/components/book-cover'
 import { PublicAPI, GENRES, type Book } from '@/lib/plume'
-import { usePlume } from '@/components/plume-provider'
 
 function BookCard({ book, onOpen }: { book: Book; onOpen: (b: Book) => void }) {
   return (
@@ -33,13 +32,9 @@ function BookCard({ book, onOpen }: { book: Book; onOpen: (b: Book) => void }) {
 
 export function Landing() {
   const router = useRouter()
-  const { user } = usePlume()
   const [trending, setTrending] = useState<Book[]>([])
-  const [q, setQ] = useState('')
-  const [results, setResults] = useState<Book[] | null>(null)
-  const [searching, setSearching] = useState(false)
+  const [query, setQuery] = useState('')
   const [loadingTrending, setLoadingTrending] = useState(true)
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     PublicAPI.trending()
@@ -48,31 +43,16 @@ export function Landing() {
       .finally(() => setLoadingTrending(false))
   }, [])
 
-  useEffect(() => {
-    if (timer.current) clearTimeout(timer.current)
-    const query = q.trim()
-    if (!query) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setResults(null)
-      setSearching(false)
-      return
-    }
-    setSearching(true)
-    timer.current = setTimeout(() => {
-      PublicAPI.search(query).then(setResults).catch(() => setResults([])).finally(() => setSearching(false))
-    }, 350)
-    return () => { if (timer.current) clearTimeout(timer.current) }
-  }, [q])
-
-  const openBook = (b: Book) => {
-    if (user) router.push(`/livres/${b.id}`)
-    else router.push(`/connexion?next=/livres/${b.id}`)
+  // Redirige vers la page de recherche (résultats complets)
+  const goSearch = (q: string) => {
+    const term = q.trim()
+    if (!term) return
+    router.push(`/recherche?q=${encodeURIComponent(term)}`)
   }
 
+  const openBook = (b: Book) => router.push(`/livres/${b.id}`)
   const signup = () => router.push('/inscription')
   const login = () => router.push('/connexion')
-
-  const shown = results ?? trending
 
   return (
     <div className="space-y-16 pb-10">
@@ -92,25 +72,31 @@ export function Landing() {
             et les <strong>lire</strong> comme de vrais livres. Rejoins la communauté d’auteurs et de lecteurs.
           </p>
 
-          {/* Recherche publique */}
-          <div className="relative mt-6 max-w-lg">
+          {/* Recherche publique → page de résultats */}
+          <form
+            onSubmit={(e) => { e.preventDefault(); goSearch(query) }}
+            className="relative mt-6 max-w-lg"
+            role="search"
+          >
             <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
             <Input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Rechercher un livre, un auteur, un genre…"
-              className="h-12 rounded-2xl pl-11 pr-4 text-base"
+              className="h-12 rounded-2xl pl-11 pr-28 text-base"
               aria-label="Rechercher un livre"
             />
-            {searching && <Loader2 size={16} className="absolute right-4 top-1/2 -translate-y-1/2 animate-spin text-stone-400" />}
-          </div>
+            <Button type="submit" className="absolute right-1.5 top-1/2 h-9 -translate-y-1/2 rounded-xl" disabled={!query.trim()}>
+              Rechercher
+            </Button>
+          </form>
 
           <div className="mt-5 flex flex-wrap gap-3">
             <Button size="lg" onClick={signup}>Commencer à écrire <ArrowRight size={17} /></Button>
             <Button size="lg" variant="outline" onClick={login}>J’ai déjà un compte</Button>
           </div>
           <p className="text-muted-foreground mt-3 flex items-center gap-1.5 text-xs">
-            <Lock size={12} /> La lecture nécessite un compte gratuit — la recherche est libre.
+            <Lock size={12} /> La lecture nécessite un compte gratuit — la recherche et les fiches sont libres.
           </p>
         </div>
 
@@ -127,28 +113,28 @@ export function Landing() {
         </div>
       </section>
 
-      {/* Tendances / résultats */}
+      {/* Tendances */}
       <section>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-2xl font-bold">
-            {results ? <><Search size={22} className="text-amber-600" /> Résultats pour « {q} »</> : <><Flame size={22} className="text-amber-600" /> Tendances en ce moment</>}
+            <Flame size={22} className="text-amber-600" /> Tendances en ce moment
           </h2>
-          {results && <Button variant="ghost" size="sm" onClick={() => setQ('')}>Effacer</Button>}
+          <Link href="/recherche" className="text-sm font-semibold text-amber-700 hover:underline">Tout parcourir →</Link>
         </div>
 
-        {loadingTrending && !results ? (
+        {loadingTrending ? (
           <div className="flex items-center justify-center gap-2 py-16 text-stone-400">
             <Loader2 size={20} className="animate-spin" /> Chargement des tendances…
           </div>
-        ) : shown.length === 0 ? (
+        ) : trending.length === 0 ? (
           <div className="rounded-2xl border border-dashed p-12 text-center">
             <BookOpen size={28} className="mx-auto text-stone-400" />
-            <p className="mt-2 font-semibold">{results ? 'Aucun livre trouvé' : 'Pas encore de livres publiés'}</p>
-            <p className="text-muted-foreground text-sm">{results ? 'Essaie un autre titre, auteur ou genre.' : 'Sois le premier à publier une histoire !'}</p>
+            <p className="mt-2 font-semibold">Pas encore de livres publiés</p>
+            <p className="text-muted-foreground text-sm">Sois le premier à publier une histoire !</p>
           </div>
         ) : (
           <div className="grid gap-5 sm:grid-cols-3 lg:grid-cols-4">
-            {shown.slice(0, 8).map((b) => <BookCard key={b.id} book={b} onOpen={openBook} />)}
+            {trending.slice(0, 8).map((b) => <BookCard key={b.id} book={b} onOpen={openBook} />)}
           </div>
         )}
       </section>
@@ -160,7 +146,7 @@ export function Landing() {
           {GENRES.map((g) => (
             <button
               key={g}
-              onClick={() => setQ(g)}
+              onClick={() => goSearch(g)}
               className="bg-card rounded-full border px-4 py-2 text-sm font-medium hover:bg-stone-50"
             >
               {g}

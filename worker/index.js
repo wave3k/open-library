@@ -555,6 +555,50 @@ export default {
         return json({ books: (res.results || []).map((b) => publicCard(b)), query: q })
       }
 
+      // Fiche publique d'un livre (accessible sans compte, lecture non incluse)
+      const pubBookMatch = path.match(/^\/api\/public\/books\/([^/]+)$/)
+      if (req.method === 'GET' && pubBookMatch) {
+        const bid = pubBookMatch[1]
+        const b = await db.prepare(`${BOOK_SELECT} WHERE b.id = ?`).bind(bid).first()
+        if (!b || b.is_public !== 1) return json({ error: 'Livre introuvable.' }, 404)
+        const ch = await db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY position ASC, rowid ASC').bind(bid).all()
+        if (!(ch.results || []).length) return json({ error: 'Livre introuvable.' }, 404)
+        return json({ book: serializeBook(b, ch.results || [], await bookCounts(db, bid)) })
+      }
+
+      // Commentaires publics (lecture seule) d'un livre
+      const pubCommentsMatch = path.match(/^\/api\/public\/books\/([^/]+)\/comments$/)
+      if (req.method === 'GET' && pubCommentsMatch) {
+        const bid = pubCommentsMatch[1]
+        const res = await db
+          .prepare(
+            `SELECT c.id, c.content, c.created_at, c.user_id,
+                    u.username, u.display_name, u.name, u.avatar_emoji, u.avatar_color, u.avatar_image,
+                    (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.id) AS like_count
+             FROM comments c JOIN users u ON u.id = c.user_id
+             WHERE c.book_id = ? ORDER BY c.created_at DESC LIMIT 200`
+          )
+          .bind(bid)
+          .all()
+        const comments = (res.results || []).map((c) => ({
+          id: c.id,
+          content: c.content,
+          created_at: c.created_at,
+          user_id: c.user_id,
+          likes: c.like_count || 0,
+          liked: false,
+          author: {
+            id: c.user_id,
+            username: c.username,
+            display_name: c.display_name || c.name || 'Anonyme',
+            avatar_emoji: c.avatar_emoji || '',
+            avatar_color: c.avatar_color || 'amber',
+            avatar_image: c.avatar_image || '',
+          },
+        }))
+        return json({ comments })
+      }
+
       if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
 
       if (req.method === 'POST' && path === '/api/profile/password') {

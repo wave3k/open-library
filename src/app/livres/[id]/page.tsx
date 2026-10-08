@@ -15,7 +15,7 @@ import { BookFormDialog } from '@/components/book-form-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { CommentsSection } from '@/components/comments-section'
 import { usePlume } from '@/components/plume-provider'
-import { BooksAPI, bookWords, countWords, readingMinutes, type BookInput, type Chapter } from '@/lib/plume'
+import { BooksAPI, PublicAPI, bookWords, countWords, readingMinutes, type Book, type BookInput, type Chapter } from '@/lib/plume'
 import { exportBook } from '@/lib/export'
 
 export default function BookDetailPage() {
@@ -31,24 +31,32 @@ export default function BookDetailPage() {
   const [toDeleteCh, setToDeleteCh] = useState<Chapter | null>(null)
   const [likeState, setLikeState] = useState<{ likes: number; liked: boolean } | null>(null)
   const [commentCount, setCommentCount] = useState<number | null>(null)
+  const [publicBook, setPublicBook] = useState<Book | null>(null)
+  const [loadingPublic, setLoadingPublic] = useState(false)
 
-  const book = [...mine, ...explore].find((b) => b.id === id) ?? null
+  const book = [...mine, ...explore].find((b) => b.id === id) ?? publicBook
 
-  // Beacon d'impression (une fois par visite)
+  // Fiche publique pour les visiteurs (ou livre non présent dans les listes)
   useEffect(() => {
-    if (book) BooksAPI.stat(book.id, 'impression')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [book?.id])
+    if (book) return
+    if (user && loadingBooks) return
+    let cancelled = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoadingPublic(true)
+    PublicAPI.book(id)
+      .then((b) => { if (!cancelled) setPublicBook(b) })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingPublic(false) })
+    return () => { cancelled = true }
+  }, [id, book, user, loadingBooks])
 
-  if (!user) {
-    return (
-      <div className="py-20 text-center">
-        <p className="font-semibold">Connecte-toi pour voir ce livre.</p>
-        <a href="/connexion" className={buttonVariants({ className: 'mt-4' })}>Se connecter</a>
-      </div>
-    )
-  }
-  if (!book && loadingBooks) {
+  // Beacon d'impression (uniquement pour les connectés, l'API de stats l'exige)
+  useEffect(() => {
+    if (book && user) BooksAPI.stat(book.id, 'impression')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [book?.id, user])
+
+  if (!book && (loadingBooks || loadingPublic)) {
     return (
       <div className="flex items-center justify-center gap-2 py-20 text-stone-500">
         <Loader2 size={20} className="animate-spin" /> Chargement du livre…
@@ -59,13 +67,13 @@ export default function BookDetailPage() {
     return (
       <div className="py-20 text-center">
         <p className="font-semibold">Livre introuvable.</p>
-        <a href="/bibliotheque" className={buttonVariants({ variant: 'outline', className: 'mt-4' })}>Retour à la bibliothèque</a>
+        <a href="/recherche" className={buttonVariants({ variant: 'outline', className: 'mt-4' })}>Parcourir les livres</a>
       </div>
     )
   }
 
-  const isOwner = book.owner_id === user.id
-  const isFav = favs.includes(book.id)
+  const isOwner = !!user && book.owner_id === user.id
+  const isFav = !!user && favs.includes(book.id)
   const chapters = book.chapters ?? []
   const maxWords = Math.max(1, ...chapters.map((c) => countWords(c.content)))
   const lastIdx = chapters.findIndex((c) => c.id === progress[book.id])
@@ -73,14 +81,23 @@ export default function BookDetailPage() {
   const liked = likeState?.liked ?? false
   const comments = commentCount ?? book.comments
 
+  const requireAuth = (next: string) => {
+    router.push(`/connexion?next=${encodeURIComponent(next)}`)
+  }
+
   const readChapter = (chId: string | undefined) => {
     const target = chId ?? chapters[0]?.id
     if (!target) return
+    if (!user) {
+      requireAuth(`/livres/${book.id}/lire/${target}`)
+      return
+    }
     markProgress(book.id, target)
     router.push(`/livres/${book.id}/lire/${target}`)
   }
 
   const toggleLike = async () => {
+    if (!user) { requireAuth(`/livres/${book.id}`); return }
     const next = !liked
     setLikeState({ likes: likes + (next ? 1 : -1), liked: next })
     try {
@@ -130,8 +147,8 @@ export default function BookDetailPage() {
 
   return (
     <div className="space-y-5">
-      <button onClick={() => router.push('/bibliotheque')} className="flex items-center gap-1.5 text-sm font-medium text-stone-500 hover:text-stone-800">
-        <ArrowLeft size={16} /> Retour à la bibliothèque
+      <button onClick={() => router.back()} className="flex items-center gap-1.5 text-sm font-medium text-stone-500 hover:text-stone-800">
+        <ArrowLeft size={16} /> Retour
       </button>
 
       <div className="book3d-lift bg-card flex flex-col gap-6 rounded-2xl border p-6 sm:flex-row">
@@ -147,6 +164,7 @@ export default function BookDetailPage() {
                   try {
                     const updated = await BooksAPI.update(book.id, { is_public: !book.is_public })
                     applyBook(updated)
+                    setPublicBook(updated)
                     toast.success(updated.is_public ? 'Livre publié — visible par tout le monde' : 'Livre passé en privé')
                   } catch (err) {
                     toast.error(err instanceof Error ? err.message : 'Action impossible.')
@@ -164,7 +182,7 @@ export default function BookDetailPage() {
               </span>
             )}
             <button
-              onClick={() => toggleFav(book.id)}
+              onClick={() => { if (!user) { requireAuth(`/livres/${book.id}`); return } toggleFav(book.id) }}
               aria-pressed={isFav}
               className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${isFav ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-stone-200 text-stone-500 hover:border-amber-300'}`}
             >
@@ -175,7 +193,6 @@ export default function BookDetailPage() {
 
           <h2 className="mt-2 break-words text-2xl font-bold">{book.title}</h2>
 
-          {/* Auteur → profil */}
           <button
             onClick={() => router.push(`/u/${book.owner.username}`)}
             className="mt-2 flex items-center gap-2.5 rounded-full pr-3 transition hover:bg-stone-100"
@@ -189,7 +206,6 @@ export default function BookDetailPage() {
 
           <p className="mt-3 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-stone-600">{book.description || 'Aucune description.'}</p>
 
-          {/* Stats */}
           <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-stone-500">
             <span className="inline-flex items-center gap-1"><TrendingUp size={13} /> {book.impressions.toLocaleString('fr-FR')} impressions</span>
             <span className="inline-flex items-center gap-1"><Eye size={13} /> {book.views.toLocaleString('fr-FR')} lectures</span>
@@ -198,7 +214,6 @@ export default function BookDetailPage() {
             <span>· {chapters.length} chapitre(s) · {bookWords(book).toLocaleString('fr-FR')} mots · ~{readingMinutes(book)} min</span>
           </div>
 
-          {/* Tags */}
           {book.tags?.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {book.tags.map((t) => (
@@ -228,7 +243,7 @@ export default function BookDetailPage() {
           )}
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {lastIdx >= 0 ? (
+            {lastIdx >= 0 && user ? (
               <Button onClick={() => readChapter(progress[book.id])}>
                 <Play size={16} /> Reprendre · ch. {lastIdx + 1}
               </Button>
@@ -273,6 +288,13 @@ export default function BookDetailPage() {
               )}
             </div>
           </div>
+
+          {!user && (
+            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800">
+              <Lock size={13} className="mr-1 inline" />
+              <a href={`/connexion?next=/livres/${book.id}`} className="font-semibold underline">Connecte-toi</a> pour lire les chapitres, aimer et commenter.
+            </p>
+          )}
         </div>
       </div>
 

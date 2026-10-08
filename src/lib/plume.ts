@@ -323,6 +323,9 @@ export const PublicAPI = {
     request<{ books: Book[]; query: string }>(`/api/public/search?q=${encodeURIComponent(q)}`, { auth: false }).then(
       (d) => d.books
     ),
+  book: (id: string) => request<{ book: Book }>(`/api/public/books/${encodeURIComponent(id)}`, { auth: false }).then((d) => d.book),
+  comments: (id: string) =>
+    request<{ comments: Comment[] }>(`/api/public/books/${encodeURIComponent(id)}/comments`, { auth: false }).then((d) => d.comments),
 }
 
 export const ProfileAPI = {
