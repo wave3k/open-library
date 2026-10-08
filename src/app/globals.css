@@ -490,3 +490,14 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Signature HQStudio */
+.brand-hover {
+  background: linear-gradient(100deg, currentColor 0%, #b45309 45%, currentColor 100%);
+  background-size: 220% 100%;
+  background-position: 0% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  transition: background-position 0.6s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.brand-hover:hover { background-position: 100% 0; color: transparent; }
