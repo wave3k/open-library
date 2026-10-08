@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   BookOpen, Heart, FileText, Pencil, CalendarDays, Loader2, Camera, ImagePlus,
-  BarChart3, MessageSquare, Eye, TrendingUp,
+  BarChart3, MessageSquare, Eye, TrendingUp, Lock, Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -64,6 +64,8 @@ export function ProfileView({ username }: { username?: string }) {
   const [remote, setRemote] = useState<{ user: User; stats: ProfileStats; books: Book[] } | null>(null)
   const [counts, setCounts] = useState<{ followers: number; following: number } | null>(null)
   const [isFollowing, setIsFollowing] = useState(false)
+  const [restricted, setRestricted] = useState(false)
+  const [visibility, setVisibility] = useState<'public' | 'followers' | 'private'>('public')
   const [followBusy, setFollowBusy] = useState(false)
   const [loading, setLoading] = useState(!isSelf)
   const [editing, setEditing] = useState(false)
@@ -72,23 +74,28 @@ export function ProfileView({ username }: { username?: string }) {
   const avatarInput = useRef<HTMLInputElement>(null)
   const bannerInput = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
+  const loadProfile = useCallback(async () => {
     const handle = isSelf ? me?.username : username
     if (!handle) return
-    let cancelled = false
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!isSelf) setLoading(true)
-    ProfileAPI.get(handle)
-      .then((d) => {
-        if (cancelled) return
-        setCounts({ followers: d.followers, following: d.following })
-        setIsFollowing(d.is_following)
-        if (!isSelf) setRemote({ user: d.user, stats: d.stats, books: d.books })
-      })
-      .catch((err) => toast.error(err instanceof Error ? err.message : 'Profil introuvable.'))
-      .finally(() => !cancelled && setLoading(false))
-    return () => { cancelled = true }
-  }, [username, isSelf, me?.username])
+    try {
+      const d = await ProfileAPI.get(handle)
+      setCounts({ followers: d.followers, following: d.following })
+      setIsFollowing(d.is_following)
+      setRestricted(!!d.restricted)
+      setVisibility(d.visibility || 'public')
+      if (!isSelf) setRemote({ user: d.user, stats: d.stats as ProfileStats, books: d.books })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Profil introuvable.')
+    } finally {
+      setLoading(false)
+    }
+  }, [isSelf, me?.username, username])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadProfile()
+  }, [loadProfile])
 
   const toggleFollow = async () => {
     const handle = profile?.username
@@ -102,6 +109,8 @@ export function ProfileView({ username }: { username?: string }) {
       const res = next ? await ProfileAPI.follow(handle) : await ProfileAPI.unfollow(handle)
       setIsFollowing(res.is_following)
       setCounts({ followers: res.followers, following: res.following })
+      // Débloque le contenu si le profil est réservé aux abonnés
+      if (next) await loadProfile()
     } catch (err) {
       setIsFollowing(!next)
       toast.error(err instanceof Error ? err.message : 'Action impossible.')
@@ -130,6 +139,73 @@ export function ProfileView({ username }: { username?: string }) {
       <div className="py-20 text-center">
         <p className="font-semibold">Profil introuvable.</p>
         <a href="/recherche" className="mt-4 inline-block rounded-xl border border-stone-200 px-4 py-2 text-sm font-semibold">Parcourir les livres</a>
+      </div>
+    )
+  }
+
+  // Profil restreint (privé, ou réservé aux abonnés)
+  if (restricted && !isSelf) {
+    return (
+      <div className="animate-fade-up space-y-6">
+        <div className="bg-card relative overflow-hidden rounded-3xl border">
+          <div className="h-40 sm:h-52">
+            {profile.banner_image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.banner_image} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full bg-gradient-to-br from-amber-400 via-amber-500 to-orange-600" />
+            )}
+          </div>
+          <div className="px-6 pb-6">
+            <div className="-mt-12 flex flex-wrap items-end gap-4">
+              <div className="rounded-full border-4 border-white shadow-lg dark:border-stone-900">
+                <Avatar user={profile} size={96} />
+              </div>
+              <div className="min-w-0 flex-1 pb-1">
+                <h1 className="truncate text-2xl font-bold">{profile.display_name}</h1>
+                <p className="text-muted-foreground text-sm">
+                  @{profile.username}
+                  {counts && (
+                    <> · <b className="text-stone-700 dark:text-stone-200">{counts.followers.toLocaleString('fr-FR')}</b> abonné(s)
+                      {' · '}<b className="text-stone-700 dark:text-stone-200">{counts.following.toLocaleString('fr-FR')}</b> abonnement(s)</>
+                  )}
+                </p>
+              </div>
+              {me && (
+                <Button variant={isFollowing ? 'outline' : 'default'} onClick={toggleFollow} disabled={followBusy}>
+                  {followBusy ? <Loader2 size={15} className="animate-spin" /> : null}
+                  {isFollowing ? 'Abonné ✓' : 'Suivre'}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-card rounded-2xl border p-12 text-center">
+          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-stone-100 text-stone-500 dark:bg-stone-800">
+            {visibility === 'private' ? <Lock size={28} /> : <Users size={28} />}
+          </span>
+          <p className="mt-4 text-lg font-bold">
+            {visibility === 'private' ? 'Ce profil est privé' : 'Profil réservé à ses abonnés'}
+          </p>
+          <p className="text-muted-foreground mx-auto mt-1.5 max-w-sm text-sm">
+            {visibility === 'private'
+              ? 'Son propriétaire a choisi de le garder privé.'
+              : isFollowing
+                ? 'Tu le suis — son contenu est en cours de chargement.'
+                : 'Abonne-toi pour voir ses œuvres.'}
+          </p>
+          {visibility === 'followers' && !isFollowing && me && (
+            <Button className="mt-5" onClick={toggleFollow} disabled={followBusy}>
+              {followBusy ? <Loader2 size={15} className="animate-spin" /> : <Users size={15} />} Suivre {profile.display_name}
+            </Button>
+          )}
+          {!me && (
+            <a href={`/connexion?next=${encodeURIComponent(`/u/${profile.username}`)}`} className="mt-5 inline-block rounded-xl bg-amber-700 px-4 py-2 text-sm font-semibold text-white">
+              Se connecter pour suivre
+            </a>
+          )}
+        </div>
       </div>
     )
   }

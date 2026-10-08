@@ -433,6 +433,11 @@ export default {
           sets.push('onboarded = ?')
           vals.push(body.onboarded ? 1 : 0)
         }
+        if (body.profile_visibility !== undefined) {
+          const v = String(body.profile_visibility)
+          sets.push('profile_visibility = ?')
+          vals.push(['public', 'followers', 'private'].includes(v) ? v : 'public')
+        }
         if (body.username !== undefined) {
           const u = String(body.username).trim().toLowerCase()
           if (!USERNAME_RE.test(u)) return json({ error: 'Nom d’utilisateur invalide.' }, 400)
@@ -450,16 +455,47 @@ export default {
       }
 
       // ---------- PROFILS PUBLICS ----------
-      if (req.method === 'GET' && path.startsWith('/api/users/')) {
+      if (req.method === 'GET' && path.startsWith('/api/users/') && !path.endsWith('/follow')) {
         const handle = decodeURIComponent(path.slice('/api/users/'.length))
         const row = await db.prepare('SELECT * FROM users WHERE username = ? OR id = ?').bind(handle, handle).first()
         if (!row) return json({ error: 'Profil introuvable.' }, 404)
         const isSelf = me && me.id === row.id
-        const stats = await profileStats(db, row.id)
+        const visibility = row.profile_visibility || 'public'
         const fc = await followCounts(db, row.id)
         const isFollowing = me
           ? await db.prepare('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?').bind(me.id, row.id).first()
           : null
+
+        let allowed = !!isSelf || visibility === 'public'
+        if (!allowed && visibility === 'followers' && me) {
+          allowed = !!isFollowing
+        }
+
+        if (!allowed) {
+          return json({
+            restricted: true,
+            visibility,
+            user: {
+              id: row.id,
+              username: row.username || row.id,
+              display_name: row.display_name || row.name || 'Anonyme',
+              name: row.display_name || row.name || 'Anonyme',
+              avatar_emoji: row.avatar_emoji || '',
+              avatar_color: row.avatar_color || 'amber',
+              avatar_image: row.avatar_image || '',
+              banner_image: row.banner_image || '',
+              profile_visibility: visibility,
+              bio: '',
+            },
+            stats: null,
+            books: [],
+            followers: fc.followers,
+            following: fc.following,
+            is_following: !!isFollowing,
+          })
+        }
+
+        const stats = await profileStats(db, row.id)
         const res = await db
           .prepare(`${BOOK_SELECT} WHERE b.owner_id = ? ${isSelf ? '' : 'AND b.is_public = 1 AND EXISTS (SELECT 1 FROM chapters ch WHERE ch.book_id = b.id)'} ORDER BY b.updated_at DESC`)
           .bind(row.id)
@@ -470,6 +506,8 @@ export default {
           books.push(serializeBook(b, ch.results || [], await bookCounts(db, b.id)))
         }
         return json({
+          restricted: false,
+          visibility,
           user: publicProfile(row, { self: !!isSelf }),
           stats,
           books,

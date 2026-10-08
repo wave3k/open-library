@@ -22,7 +22,14 @@ export function Onboarding() {
     else if (user.onboarded) router.replace('/bibliotheque')
   }, [user, router])
 
-  if (!user || user.onboarded) return null
+  if (!user || user.onboarded) {
+    // Redirection en cours (évite une page blanche)
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center gap-2 text-stone-500">
+        <Loader2 size={20} className="animate-spin" /> Un instant…
+      </div>
+    )
+  }
 
   const finish = async (skipped = false) => {
     setSaving(true)
@@ -39,7 +46,7 @@ export function Onboarding() {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col overflow-y-auto bg-gradient-to-br from-[#fbf7ec] via-[#f3eee2] to-[#efe7d3] dark:from-stone-950 dark:via-stone-900 dark:to-stone-950">
+    <div className="-mx-4 -my-6 flex min-h-[100dvh] flex-col overflow-y-auto bg-gradient-to-br from-[#fbf7ec] via-[#f3eee2] to-[#efe7d3] dark:from-stone-950 dark:via-stone-900 dark:to-stone-950">
       {/* Barre du haut */}
       <div className="flex items-center justify-between px-6 py-5 sm:px-10">
         <div className="flex items-center gap-2">

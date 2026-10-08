@@ -58,6 +58,7 @@ export function publicProfile(row, { self = false } = {}) {
     banner_image: row.banner_image || '',
     preferences: parseJsonArr(row.preferences),
     onboarded: row.onboarded === 1,
+    profile_visibility: row.profile_visibility || 'public',
     created_at: row.created_at,
     ...(self ? { email: row.email, referral_source: row.referral_source || '' } : {}),
   }

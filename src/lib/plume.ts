@@ -67,6 +67,7 @@ export interface User {
   banner_image: string
   preferences: string[]
   onboarded: boolean
+  profile_visibility: 'public' | 'followers' | 'private'
   created_at: string
   email?: string
   referral_source?: string
@@ -332,11 +333,13 @@ export const ProfileAPI = {
   get: (username: string) =>
     request<{
       user: User
-      stats: ProfileStats
+      stats: ProfileStats | null
       books: Book[]
       followers: number
       following: number
       is_following: boolean
+      restricted: boolean
+      visibility: 'public' | 'followers' | 'private'
     }>(`/api/users/${encodeURIComponent(username)}`),
   follow: (username: string) =>
     request<{ followers: number; following: number; is_following: boolean }>(
@@ -348,7 +351,7 @@ export const ProfileAPI = {
       `/api/users/${encodeURIComponent(username)}/follow`,
       { method: 'DELETE' }
     ),
-  update: (p: Partial<Pick<User, 'display_name' | 'username' | 'bio' | 'avatar_emoji' | 'avatar_color' | 'avatar_image' | 'banner_image' | 'preferences' | 'referral_source' | 'onboarded'>>) =>
+  update: (p: Partial<Pick<User, 'display_name' | 'username' | 'bio' | 'avatar_emoji' | 'avatar_color' | 'avatar_image' | 'banner_image' | 'preferences' | 'referral_source' | 'onboarded' | 'profile_visibility'>>) =>
     request<{ user: User; stats: ProfileStats }>('/api/profile', { method: 'PUT', body: p }),
   changePassword: (current_password: string, new_password: string) =>
     request<{ ok: boolean }>('/api/profile/password', { method: 'POST', body: { current_password, new_password } }),

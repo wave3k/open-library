@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Sun, Moon, Monitor, Palette, User as UserIcon, KeyRound, LogOut,
-  Trash2, Loader2, Check, Globe, Lock, Sparkles, ShieldAlert,
+  Trash2, Loader2, Check, Globe, Lock, Sparkles, ShieldAlert, Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -53,6 +53,15 @@ export function SettingsView() {
 
   const [askDelete, setAskDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  const setVisibility = async (v: 'public' | 'followers' | 'private') => {
+    try {
+      await updateProfile({ profile_visibility: v })
+      toast.success(v === 'public' ? 'Profil public' : v === 'followers' ? 'Profil réservé à tes abonnés' : 'Profil privé')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Modification impossible.')
+    }
+  }
 
   if (!user) {
     return (
@@ -192,10 +201,30 @@ export function SettingsView() {
       </Section>
 
       {/* Confidentialité */}
-      <Section icon={Globe} title="Confidentialité" desc="Visibilité par défaut de tes nouveaux livres.">
-        <p className="text-muted-foreground flex items-center gap-2 text-sm">
-          <Globe size={15} /> Tes livres sont publics par défaut. Tu peux passer chaque livre en privé depuis sa page
-          (<Lock size={13} className="inline" /> bouton Public/Privé).
+      <Section icon={ShieldAlert} title="Confidentialité du profil" desc="Qui peut voir ton profil et tes œuvres ?">
+        <div className="grid gap-2.5 sm:grid-cols-3">
+          {([
+            { id: 'public', label: 'Public', desc: 'Tout le monde', icon: Globe },
+            { id: 'followers', label: 'Abonnés', desc: 'Ceux qui te suivent', icon: Users },
+            { id: 'private', label: 'Privé', desc: 'Toi uniquement', icon: Lock },
+          ] as const).map(({ id, label, desc, icon: Icon }) => {
+            const active = (user.profile_visibility || 'public') === id
+            return (
+              <button
+                key={id}
+                onClick={() => setVisibility(id)}
+                aria-pressed={active}
+                className={cn('flex flex-col items-start gap-1 rounded-xl border px-3.5 py-3 text-left transition', active ? 'border-amber-600 bg-amber-50 text-amber-900' : 'border-stone-200 hover:bg-stone-50')}
+              >
+                <span className="flex items-center gap-1.5 font-semibold"><Icon size={15} /> {label}</span>
+                <span className="text-xs opacity-70">{desc}</span>
+                {active && <Check size={14} className="text-amber-600" />}
+              </button>
+            )
+          })}
+        </div>
+        <p className="text-muted-foreground mt-3 text-xs">
+          « Abonnés » : seules les personnes qui te suivent voient tes œuvres. « Privé » : personne d’autre que toi.
         </p>
       </Section>
 

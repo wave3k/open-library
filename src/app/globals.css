@@ -410,8 +410,10 @@ body {
   to { opacity: 1; transform: none; }
 }
 
-/* Entrée de page (utilisée par app/template.tsx) */
-.page-enter { animation: ol-fade-up 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+/* Entrée de page (utilisée par app/template.tsx).
+   Volontairement SANS transform : un transform créerait un containing block
+   et casserait les éléments position:fixed (modales, recadreur d'image…). */
+.page-enter { animation: ol-fade-in 0.4s ease both; }
 
 /* Reveal simple */
 .animate-fade-up { animation: ol-fade-up 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
