@@ -4,6 +4,7 @@ export interface Chapter {
   id: string
   title: string
   content: string
+  word_count?: number
 }
 
 export interface AuthorRef {
@@ -304,6 +305,7 @@ export interface BookInput {
 export const BooksAPI = {
   mine: () => request<{ books: Book[] }>('/api/books?scope=mine').then((d) => d.books),
   explore: () => request<{ books: Book[] }>('/api/books?scope=explore').then((d) => d.books),
+  get: (id: string) => request<{ book: Book }>(`/api/books/${encodeURIComponent(id)}`).then((d) => d.book),
   recommendations: (limit = 12) =>
     request<{ items: Recommendation[] }>(`/api/recommendations?limit=${limit}`).then((d) => d.items),
   create: (p: BookInput) => request<{ book: Book }>('/api/books', { method: 'POST', body: p }).then((d) => d.book),
@@ -422,7 +424,7 @@ export function countWords(text: string | undefined | null = ''): number {
 }
 
 export function bookWords(book: { chapters?: Chapter[] }): number {
-  return (book.chapters ?? []).reduce((s, c) => s + countWords(c?.content), 0)
+  return (book.chapters ?? []).reduce((s, c) => s + (typeof c?.word_count === 'number' && c.word_count > 0 ? c.word_count : countWords(c?.content)), 0)
 }
 
 export function readingMinutes(book: { chapters?: Chapter[] }): number {

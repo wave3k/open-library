@@ -32,9 +32,24 @@ export default function BookDetailPage() {
   const [likeState, setLikeState] = useState<{ likes: number; liked: boolean } | null>(null)
   const [commentCount, setCommentCount] = useState<number | null>(null)
   const [publicBook, setPublicBook] = useState<Book | null>(null)
+  const [detailed, setDetailed] = useState<Book | null>(null)
   const [loadingPublic, setLoadingPublic] = useState(false)
 
-  const book = [...mine, ...explore].find((b) => b.id === id) ?? publicBook
+  const listedBook = [...mine, ...explore].find((b) => b.id === id) ?? null
+  const book = detailed ?? listedBook ?? publicBook
+
+  // Récupère le texte complet si la liste ne le contient pas (payload allégé)
+  useEffect(() => {
+    const b = detailed ?? listedBook
+    if (!b || !user) return
+    const lite = (b.chapters ?? []).some((c) => !c.content && (c.word_count ?? 0) > 0)
+    if (!lite) return
+    let cancelled = false
+    BooksAPI.get(b.id)
+      .then((full) => { if (!cancelled) setDetailed(full) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [listedBook, detailed, user])
 
   // Fiche publique pour les visiteurs (ou livre non présent dans les listes)
   useEffect(() => {

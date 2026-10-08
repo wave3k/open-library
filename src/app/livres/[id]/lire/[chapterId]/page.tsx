@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, ChevronLeft, ChevronRight, List, Type, Moon, Sun, BookOpen, Loader2 } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { usePlume } from '@/components/plume-provider'
-import { BooksAPI } from '@/lib/plume'
+import { BooksAPI, type Book } from '@/lib/plume'
 import { sanitizeHtml } from '@/lib/sanitize'
 
 const THEMES = {
@@ -37,8 +37,22 @@ export default function ReaderPage() {
   const { id, chapterId } = useParams<{ id: string; chapterId: string }>()
   const router = useRouter()
   const { user, mine, explore, markProgress, loadingBooks } = usePlume()
-  const book = [...mine, ...explore].find((b) => b.id === id) ?? null
+  const baseBook = [...mine, ...explore].find((b) => b.id === id) ?? null
 
+  // Si la liste ne contient pas le texte des chapitres, on récupère le livre complet.
+  const [full, setFull] = useState<Book | null>(null)
+  useEffect(() => {
+    if (!baseBook) return
+    const needsContent = (baseBook.chapters ?? []).some((c) => !c.content)
+    if (!needsContent) return
+    let cancelled = false
+    BooksAPI.get(baseBook.id)
+      .then((b) => { if (!cancelled) setFull(b) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [baseBook])
+
+  const book = full ?? baseBook
   const chapters = book?.chapters ?? []
   const found = chapters.findIndex((c) => c.id === chapterId)
   const safeIdx = found >= 0 ? found : 0

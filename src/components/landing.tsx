@@ -31,12 +31,12 @@ function BookCard({ book, onOpen }: { book: Book; onOpen: (b: Book) => void }) {
   )
 }
 
-export function Landing() {
+export function Landing({ initialTrending = [] }: { initialTrending?: Book[] }) {
   const router = useRouter()
-  const [trending, setTrending] = useState<Book[]>([])
+  const [trending, setTrending] = useState<Book[]>(initialTrending)
   const [failed, setFailed] = useState(false)
   const [query, setQuery] = useState('')
-  const [loadingTrending, setLoadingTrending] = useState(true)
+  const [loadingTrending, setLoadingTrending] = useState(initialTrending.length === 0)
 
   const loadTrending = () => {
     setFailed(false)
@@ -48,8 +48,11 @@ export function Landing() {
   }
 
   useEffect(() => {
+    // On ne recharge pas si le serveur a déjà fourni les tendances.
+    if (initialTrending.length > 0) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadTrending()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Redirige vers la page de recherche (résultats complets)
