@@ -8,19 +8,22 @@ import { Input } from '@/components/ui/input'
 import { BookCover } from '@/components/book-cover'
 import { BookGridSkeleton } from '@/components/skeleton'
 import { PublicAPI, type Book } from '@/lib/plume'
+import { clickableProps } from '@/lib/a11y'
 
 export function SearchView() {
   const router = useRouter()
   const [q, setQ] = useState('')
   const [books, setBooks] = useState<Book[]>([])
   const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
   const inited = useRef(false)
 
   const run = useCallback((term: string) => {
     setLoading(true)
+    setFailed(false)
     PublicAPI.search(term)
-      .then(setBooks)
-      .catch(() => setBooks([]))
+      .then((b) => { setBooks(b); setFailed(false) })
+      .catch(() => { setBooks([]); setFailed(true) })
       .finally(() => setLoading(false))
   }, [])
 
@@ -53,7 +56,7 @@ export function SearchView() {
       </div>
 
       <form onSubmit={submit} className="relative max-w-xl" role="search">
-        <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
+        <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-500" />
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -67,9 +70,16 @@ export function SearchView() {
 
       {loading ? (
         <BookGridSkeleton count={8} />
+      ) : failed ? (
+        <div className="rounded-2xl border border-dashed p-12 text-center">
+          <BookOpen size={28} className="mx-auto text-stone-500" />
+          <p className="mt-2 font-semibold">Impossible de charger les résultats</p>
+          <p className="text-muted-foreground text-sm">Vérifie ta connexion puis réessaie.</p>
+          <Button variant="outline" className="mt-4" onClick={() => run(q)}>Réessayer</Button>
+        </div>
       ) : books.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-12 text-center">
-          <BookOpen size={28} className="mx-auto text-stone-400" />
+          <BookOpen size={28} className="mx-auto text-stone-500" />
           <p className="mt-2 font-semibold">Aucun livre trouvé</p>
           <p className="text-muted-foreground text-sm">Essaie un autre titre, auteur ou genre.</p>
         </div>
@@ -80,6 +90,7 @@ export function SearchView() {
               key={b.id}
               className="book3d-lift hover-lift group bg-card flex cursor-pointer flex-col gap-3 rounded-2xl border p-4"
               onClick={() => router.push(`/livres/${b.id}`)}
+              {...clickableProps(() => router.push(`/livres/${b.id}`))}
             >
               <div className="flex justify-center pt-1">
                 <BookCover book={b} title={b.title} author={b.author} genre={b.genre} size="md" />
@@ -89,7 +100,7 @@ export function SearchView() {
                 <h3 className="mt-1.5 truncate font-bold">{b.title}</h3>
                 <p className="truncate text-sm text-stone-500">par {b.author}</p>
                 <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-stone-500">{b.description || 'Aucune description.'}</p>
-                <p className="mt-1.5 text-xs text-stone-400">{b.chapter_count ?? 0} chapitre(s) · {b.likes} likes</p>
+                <p className="mt-1.5 text-xs text-stone-500">{b.chapter_count ?? 0} chapitre(s) · {b.likes} likes</p>
               </div>
             </article>
           ))}

@@ -125,11 +125,11 @@ export function CommentsSection({
 
       <div className="mt-4 space-y-4">
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-6 text-stone-400">
+          <div className="flex items-center justify-center gap-2 py-6 text-stone-500">
             <Loader2 size={16} className="animate-spin" /> Chargement…
           </div>
         ) : comments.length === 0 ? (
-          <p className="py-4 text-center text-sm text-stone-400">Aucun commentaire. Sois le premier !</p>
+          <p className="py-4 text-center text-sm text-stone-500">Aucun commentaire. Sois le premier !</p>
         ) : (
           comments.map((c) => {
             const canDelete = user && (user.id === c.user_id || user.id === bookOwnerId)
@@ -143,14 +143,14 @@ export function CommentsSection({
                     <button onClick={() => router.push(`/u/${c.author.username}`)} className="text-sm font-semibold hover:underline">
                       {c.author.display_name}
                     </button>
-                    <span className="text-xs text-stone-400">{timeAgo(c.created_at)}</span>
+                    <span className="text-xs text-stone-500">{timeAgo(c.created_at)}</span>
                     <div className="ml-auto flex items-center gap-2">
                       <button
                         onClick={() => user && toggleLike(c)}
                         disabled={!user}
                         aria-pressed={c.liked}
                         aria-label={c.liked ? 'Retirer le like' : 'Aimer ce commentaire'}
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold transition ${c.liked ? 'animate-pop text-red-500' : 'text-stone-400 hover:text-red-400'} disabled:opacity-50`}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold transition ${c.liked ? 'animate-pop text-red-500' : 'text-stone-500 hover:text-red-400'} disabled:opacity-50`}
                       >
                         <Heart size={13} fill={c.liked ? 'currentColor' : 'none'} /> {c.likes}
                       </button>

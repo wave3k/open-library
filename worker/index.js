@@ -9,6 +9,7 @@ import {
   SESSION_DAYS,
 } from './auth.js'
 import { recommend } from './recommend.js'
+import { sanitizeHtml, wordCountOf } from './sanitize.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const USERNAME_RE = /^[a-z0-9_]{3,24}$/
@@ -24,16 +25,36 @@ const COVER_PATTERNS = ['none', 'stripes', 'dots', 'grid', 'waves']
 const COVER_LAYOUTS = ['classic', 'centered', 'minimal', 'band']
 const REFERRALS = ['youtube', 'x', 'search', 'ia', 'friend', 'tiktok', 'instagram', 'other']
 
-// Le front Next.js (dev local + Vercel) appelle l'API en cross-origin.
+// CORS : on ne renvoie l'en-tête Allow-Origin que pour les origines connues
+// (le front passe normalement par un proxy même-origine, cet en-tête est une garde).
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Max-Age': '86400',
 }
 
+function isAllowedOrigin(origin) {  if (!origin) return false
+  try {
+    const { hostname, protocol } = new URL(origin)
+    if (protocol !== 'https:' && protocol !== 'http:') return false
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true
+    if (hostname.endsWith('.vercel.app')) return true
+    if (hostname.endsWith('.lirostudio.workers.dev')) return true
+    return false
+  } catch {
+    return false
+  }
+}
+
 function json(data, status = 200) {
   return Response.json(data, { status, headers: CORS_HEADERS })
+}
+
+/** Réponse publique mise en cache (CDN). */
+function cacheJson(data, maxAge = 60) {
+  return Response.json(data, {
+    headers: { ...CORS_HEADERS, 'Cache-Control': `public, s-maxage=${maxAge}, stale-while-revalidate=300` },
+  })
 }
 
 async function readJson(req) {
@@ -62,11 +83,37 @@ function parseObj(v, fallback = {}) {
   }
 }
 
-/** Nombre de mots dans du HTML ou du texte brut. */
-function wordCountOf(html) {
-  const text = String(html ?? '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ')
-  return text.trim().split(/\s+/).filter(Boolean).length
+/** Limite de débit simple (par clé) basée sur D1. Renvoie true si bloqué. */
+async function rateLimited(db, key, limit, windowSec) {
+  const now = Date.now()
+  const row = await db.prepare('SELECT count, window_start FROM rate_limits WHERE key = ?').bind(key).first()
+  if (row && now - row.window_start < windowSec * 1000) {
+    if (row.count >= limit) return true
+    await db.prepare('UPDATE rate_limits SET count = count + 1 WHERE key = ?').bind(key).run()
+    return false
+  }
+  await db
+    .prepare('INSERT INTO rate_limits (key, count, window_start) VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET count = 1, window_start = excluded.window_start')
+    .bind(key, now)
+    .run()
+  return false
 }
+
+function clientIp(req) {
+  return req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || 'unknown'
+}
+
+/** Détecte le type d'image par ses magic bytes. Retourne 'png'|'jpg'|'gif'|'webp'|null. */function detectImage(bytes) {
+  const b = new Uint8Array(bytes.slice(0, 12))
+  if (b.length < 12) return null
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'png'
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpg'
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38) return 'gif'
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'webp'
+  return null
+}
+
+/** Nombre de mots dans du HTML ou du texte brut. */
 
 async function currentUser(db, req) {
   const auth = req.headers.get('Authorization') || ''
@@ -182,6 +229,28 @@ async function bookCounts(db, bookId) {
   return { likes: l?.n ?? 0, comments: c?.n ?? 0 }
 }
 
+/** Sérialise une liste de livres en 3 requêtes au total (au lieu de 3 par livre). */
+async function serializeBookList(db, rows) {
+  if (!rows.length) return []
+  const ids = rows.map((r) => r.id)
+  const ph = ids.map(() => '?').join(',')
+  const [chRes, lkRes, cmRes] = await Promise.all([
+    db.prepare(`SELECT * FROM chapters WHERE book_id IN (${ph}) ORDER BY position ASC, rowid ASC`).bind(...ids).all(),
+    db.prepare(`SELECT book_id, COUNT(*) AS n FROM likes WHERE book_id IN (${ph}) GROUP BY book_id`).bind(...ids).all(),
+    db.prepare(`SELECT book_id, COUNT(*) AS n FROM comments WHERE book_id IN (${ph}) GROUP BY book_id`).bind(...ids).all(),
+  ])
+  const chaptersByBook = new Map()
+  for (const c of chRes.results || []) {
+    if (!chaptersByBook.has(c.book_id)) chaptersByBook.set(c.book_id, [])
+    chaptersByBook.get(c.book_id).push(c)
+  }
+  const likes = new Map((lkRes.results || []).map((r) => [r.book_id, r.n]))
+  const comments = new Map((cmRes.results || []).map((r) => [r.book_id, r.n]))
+  return rows.map((b) =>
+    serializeBook(b, chaptersByBook.get(b.id) || [], { likes: likes.get(b.id) || 0, comments: comments.get(b.id) || 0 })
+  )
+}
+
 /** Crée une notification (sauf si l'acteur est le destinataire). */
 async function notify(db, { userId, type, actorId, bookId = null, commentId = null }) {
   if (!userId || userId === actorId) return
@@ -193,8 +262,8 @@ async function notify(db, { userId, type, actorId, bookId = null, commentId = nu
 
 async function followCounts(db, userId) {
   const [f, g] = await Promise.all([
-    db.prepare('SELECT COUNT(*) AS n FROM follows WHERE following_id = ?').bind(userId).first(),
-    db.prepare('SELECT COUNT(*) AS n FROM follows WHERE follower_id = ?').bind(userId).first(),
+    db.prepare("SELECT COUNT(*) AS n FROM follows WHERE following_id = ? AND status = 'accepted'").bind(userId).first(),
+    db.prepare("SELECT COUNT(*) AS n FROM follows WHERE follower_id = ? AND status = 'accepted'").bind(userId).first(),
   ])
   return { followers: f?.n ?? 0, following: g?.n ?? 0 }
 }
@@ -291,6 +360,28 @@ async function profileStats(db, userId) {
 
 export default {
   async fetch(req, env) {
+    const origin = req.headers.get('Origin') || ''
+    let res
+    try {
+      res = await route(req, env)
+    } catch (e) {
+      console.error(e)
+      res = json({ error: 'Erreur serveur, réessaie dans un instant.' }, 500)
+    }
+    const headers = new Headers(res.headers)
+    if (isAllowedOrigin(origin)) headers.set('Access-Control-Allow-Origin', origin)
+    headers.set('Vary', 'Origin')
+    return new Response(res.body, { status: res.status, statusText: res.statusText, headers })
+  },
+
+  // Purge périodique (cron) : sessions expirées + rate limits anciens.
+  async scheduled(_event, env) {
+    await env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(Date.now()).run()
+    await env.DB.prepare('DELETE FROM rate_limits WHERE window_start < ?').bind(Date.now() - 86400000).run()
+  },
+}
+
+async function route(req, env) {
     const url = new URL(req.url)
     const path = url.pathname
     const db = env.DB
@@ -319,6 +410,9 @@ export default {
     try {
       // ---------- AUTH ----------
       if (req.method === 'POST' && path === '/api/auth/signup') {
+        if (await rateLimited(db, `signup:${clientIp(req)}`, 10, 3600)) {
+          return json({ error: 'Trop de tentatives. Réessaie dans une heure.' }, 429)
+        }
         const body = (await readJson(req)) || {}
         const name = String(body.display_name ?? body.name ?? '').trim().slice(0, 40)
         const email = String(body.email ?? '').trim().toLowerCase()
@@ -338,10 +432,10 @@ export default {
         if (!username) {
           username = slugUsername(name || email.split('@')[0])
         }
-        // garantir l'unicité
-        for (let i = 0; i < 5; i++) {
-          const taken = await db.prepare('SELECT id FROM users WHERE username = ?').bind(username).first()
-          if (!taken) break
+        // garantir l'unicité (jusqu'à 10 essais)
+        let attempts = 0
+        while (await db.prepare('SELECT id FROM users WHERE username = ?').bind(username).first()) {
+          if (++attempts > 10) return json({ error: 'Nom d’utilisateur indisponible, réessaie dans un instant.' }, 409)
           username = slugUsername(name || email.split('@')[0])
         }
         const { salt, hash } = await hashPassword(password)
@@ -359,6 +453,9 @@ export default {
       }
 
       if (req.method === 'POST' && path === '/api/auth/login') {
+        if (await rateLimited(db, `login:${clientIp(req)}`, 20, 900)) {
+          return json({ error: 'Trop de tentatives. Réessaie dans quelques minutes.' }, 429)
+        }
         const body = (await readJson(req)) || {}
         const email = String(body.email ?? '').trim().toLowerCase()
         const password = String(body.password ?? '')
@@ -475,13 +572,15 @@ export default {
         const isSelf = me && me.id === row.id
         const visibility = row.profile_visibility || 'public'
         const fc = await followCounts(db, row.id)
-        const isFollowing = me
-          ? await db.prepare('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?').bind(me.id, row.id).first()
+        const followRow = me
+          ? await db.prepare('SELECT status FROM follows WHERE follower_id = ? AND following_id = ?').bind(me.id, row.id).first()
           : null
+        const followStatus = followRow ? followRow.status : null
+        const isFollowing = followStatus === 'accepted'
 
         let allowed = !!isSelf || visibility === 'public'
         if (!allowed && visibility === 'followers' && me) {
-          allowed = !!isFollowing
+          allowed = isFollowing
         }
 
         if (!allowed) {
@@ -504,7 +603,8 @@ export default {
             books: [],
             followers: fc.followers,
             following: fc.following,
-            is_following: !!isFollowing,
+            is_following: isFollowing,
+            follow_status: followStatus,
           })
         }
 
@@ -513,20 +613,16 @@ export default {
           .prepare(`${BOOK_SELECT} WHERE b.owner_id = ? ${isSelf ? '' : 'AND b.is_public = 1 AND EXISTS (SELECT 1 FROM chapters ch WHERE ch.book_id = b.id)'} ORDER BY b.updated_at DESC`)
           .bind(row.id)
           .all()
-        const books = []
-        for (const b of res.results || []) {
-          const ch = await db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY position ASC, rowid ASC').bind(b.id).all()
-          books.push(serializeBook(b, ch.results || [], await bookCounts(db, b.id)))
-        }
+        const books = await serializeBookList(db, res.results || [])
         return json({
-          restricted: false,
-          visibility,
+          restricted: false,          visibility,
           user: publicProfile(row, { self: !!isSelf }),
           stats,
           books,
           followers: fc.followers,
           following: fc.following,
-          is_following: !!isFollowing,
+          is_following: isFollowing,
+          follow_status: followStatus,
         })
       }
 
@@ -535,20 +631,67 @@ export default {
       if (followMatch) {
         if (!me) return json({ error: 'Connecte-toi pour suivre des auteurs.' }, 401)
         const handle = decodeURIComponent(followMatch[1])
-        const target = await db.prepare('SELECT id FROM users WHERE username = ? OR id = ?').bind(handle, handle).first()
+        const target = await db.prepare('SELECT id, profile_visibility FROM users WHERE username = ? OR id = ?').bind(handle, handle).first()
         if (!target) return json({ error: 'Profil introuvable.' }, 404)
         if (target.id === me.id) return json({ error: 'Tu ne peux pas te suivre toi-même.' }, 400)
         if (req.method === 'POST') {
+          // Abonnement direct, sauf si le profil est réservé aux abonnés → demande à approuver
+          const needsApproval = (target.profile_visibility || 'public') === 'followers'
+          const status = needsApproval ? 'pending' : 'accepted'
           await db
-            .prepare('INSERT OR IGNORE INTO follows (follower_id, following_id, created_at) VALUES (?, ?, ?)')
-            .bind(me.id, target.id, new Date().toISOString())
+            .prepare('INSERT OR IGNORE INTO follows (follower_id, following_id, created_at, status) VALUES (?, ?, ?, ?)')
+            .bind(me.id, target.id, new Date().toISOString(), status)
             .run()
-          await notify(db, { userId: target.id, type: 'follow', actorId: me.id })
+          await notify(db, { userId: target.id, type: needsApproval ? 'follow_request' : 'follow', actorId: me.id })
         } else if (req.method === 'DELETE') {
           await db.prepare('DELETE FROM follows WHERE follower_id = ? AND following_id = ?').bind(me.id, target.id).run()
         }
         const fc = await followCounts(db, target.id)
-        return json({ followers: fc.followers, following: fc.following, is_following: req.method === 'POST' })
+        const row = await db.prepare('SELECT status FROM follows WHERE follower_id = ? AND following_id = ?').bind(me.id, target.id).first()
+        const status = row ? row.status : null
+        return json({ followers: fc.followers, following: fc.following, is_following: status === 'accepted', follow_status: status })
+      }
+
+      // Répondre à une demande d'abonnement (propriétaire)
+      if (req.method === 'POST' && path === '/api/follows/respond') {
+        if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
+        const body = (await readJson(req)) || {}
+        const followerId = String(body.follower_id ?? '')
+        const accept = body.accept === true
+        const row = await db
+          .prepare('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ? AND status = ?')
+          .bind(followerId, me.id, 'pending')
+          .first()
+        if (!row) return json({ error: 'Demande introuvable.' }, 404)
+        if (accept) {
+          await db.prepare("UPDATE follows SET status = 'accepted' WHERE follower_id = ? AND following_id = ?").bind(followerId, me.id).run()
+          await notify(db, { userId: followerId, type: 'follow_accepted', actorId: me.id })
+        } else {
+          await db.prepare('DELETE FROM follows WHERE follower_id = ? AND following_id = ?').bind(followerId, me.id).run()
+        }
+        return json({ ok: true })
+      }
+
+      // Liste des demandes d'abonnement en attente (pour moi)
+      if (req.method === 'GET' && path === '/api/follows/requests') {
+        if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
+        const res = await db
+          .prepare(
+            `SELECT u.id, u.username, u.display_name, u.avatar_emoji, u.avatar_color, u.avatar_image
+             FROM follows f JOIN users u ON u.id = f.follower_id
+             WHERE f.following_id = ? AND f.status = 'pending' ORDER BY f.created_at DESC`
+          )
+          .bind(me.id)
+          .all()
+        const requests = (res.results || []).map((u) => ({
+          id: u.id,
+          username: u.username,
+          display_name: u.display_name || 'Anonyme',
+          avatar_emoji: u.avatar_emoji || '',
+          avatar_color: u.avatar_color || 'amber',
+          avatar_image: u.avatar_image || '',
+        }))
+        return json({ requests })
       }
 
       // ---------- PUBLIC (sans authentification) ----------
@@ -567,7 +710,7 @@ export default {
              ORDER BY (like_count * 5 + comment_count * 3 + b.views) DESC, b.updated_at DESC LIMIT 12`
           )
           .all()
-        return json({ books: (res.results || []).map((b) => publicCard(b)) })
+        return cacheJson({ books: (res.results || []).map((b) => publicCard(b)) }, 60)
       }
 
       if (req.method === 'GET' && path === '/api/public/search') {
@@ -603,7 +746,7 @@ export default {
             .bind(like, like, like, like, like)
             .all()
         }
-        return json({ books: (res.results || []).map((b) => publicCard(b)), query: q })
+        return cacheJson({ books: (res.results || []).map((b) => publicCard(b)), query: q }, 30)
       }
 
       // Fiche publique d'un livre (accessible sans compte, lecture non incluse)
@@ -621,6 +764,8 @@ export default {
       const pubCommentsMatch = path.match(/^\/api\/public\/books\/([^/]+)\/comments$/)
       if (req.method === 'GET' && pubCommentsMatch) {
         const bid = pubCommentsMatch[1]
+        const bk = await db.prepare('SELECT is_public FROM books WHERE id = ?').bind(bid).first()
+        if (!bk || bk.is_public !== 1) return json({ comments: [] })
         const res = await db
           .prepare(
             `SELECT c.id, c.content, c.created_at, c.user_id,
@@ -654,6 +799,9 @@ export default {
 
       if (req.method === 'POST' && path === '/api/profile/password') {
         if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
+        if (await rateLimited(db, `pwd:${me.id}`, 10, 900)) {
+          return json({ error: 'Trop de tentatives. Réessaie plus tard.' }, 429)
+        }
         const body = (await readJson(req)) || {}
         const current = String(body.current_password ?? '')
         const next = String(body.new_password ?? '')
@@ -675,6 +823,11 @@ export default {
 
       if (req.method === 'DELETE' && path === '/api/account') {
         if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
+        const body = (await readJson(req)) || {}
+        const row = await db.prepare('SELECT salt, password_hash FROM users WHERE id = ?').bind(me.id).first()
+        if (!row || !(await verifyPassword(String(body.password ?? ''), row.salt, row.password_hash))) {
+          return json({ error: 'Mot de passe incorrect.' }, 401)
+        }
         await db.prepare('DELETE FROM users WHERE id = ?').bind(me.id).run()
         return json({ ok: true })
       }
@@ -717,6 +870,12 @@ export default {
 
       if (req.method === 'POST' && path === '/api/notifications/read') {
         await db.prepare('UPDATE notifications SET read = 1 WHERE user_id = ?').bind(me.id).run()
+        return json({ ok: true })
+      }
+
+      const notifOneMatch = path.match(/^\/api\/notifications\/([^/]+)\/read$/)
+      if (req.method === 'POST' && notifOneMatch) {
+        await db.prepare('UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?').bind(notifOneMatch[1], me.id).run()
         return json({ ok: true })
       }
 
@@ -806,13 +965,16 @@ export default {
       // ---------- UPLOAD (R2) ----------
       if (req.method === 'POST' && path === '/api/upload') {
         if (!env.MEDIA) return json({ error: 'Stockage média indisponible.' }, 503)
-        const ct = req.headers.get('content-type') || ''
-        if (!/^image\/(png|jpe?g|webp|gif)$/.test(ct)) return json({ error: 'Format d’image non supporté (png, jpg, webp, gif).' }, 400)
+        const MAX = 8 * 1024 * 1024
+        const declared = Number(req.headers.get('content-length') || 0)
+        if (declared && declared > MAX) return json({ error: 'Image trop lourde (8 Mo max).' }, 413)
         const buf = await req.arrayBuffer()
-        if (buf.byteLength > 8 * 1024 * 1024) return json({ error: 'Image trop lourde (8 Mo max).' }, 400)
-        const ext = ct.split('/')[1].replace('jpeg', 'jpg')
-        const key = `u/${me.id}/${Date.now()}-${randomHex(4)}.${ext}`
-        await env.MEDIA.put(key, buf, { httpMetadata: { contentType: ct } })
+        if (buf.byteLength > MAX) return json({ error: 'Image trop lourde (8 Mo max).' }, 413)
+        const kind = detectImage(buf)
+        if (!kind) return json({ error: 'Fichier image invalide (png, jpg, webp, gif).' }, 400)
+        const mime = kind === 'jpg' ? 'image/jpeg' : `image/${kind}`
+        const key = `u/${me.id}/${Date.now()}-${randomHex(4)}.${kind}`
+        await env.MEDIA.put(key, buf, { httpMetadata: { contentType: mime } })
         return json({ url: `/api/media/${key}` }, 201)
       }
 
@@ -833,11 +995,7 @@ export default {
             .all()
           rows = res.results || []
         }
-        const out = []
-        for (const b of rows) {
-          const ch = await db.prepare('SELECT * FROM chapters WHERE book_id = ? ORDER BY position ASC, rowid ASC').bind(b.id).all()
-          out.push(serializeBook(b, ch.results || [], await bookCounts(db, b.id)))
-        }
+        const out = await serializeBookList(db, rows)
         return json({ books: out })
       }
 
@@ -877,10 +1035,11 @@ export default {
           )
           const chs = Array.isArray(item.chapters) ? item.chapters.slice(0, 200) : []
           chs.forEach((c, i) => {
+            const chtml = sanitizeHtml(String(c?.content ?? '').slice(0, 200_000))
             stmts.push(
               db
                 .prepare('INSERT INTO chapters (id, book_id, title, content, position, updated_at, word_count) VALUES (?, ?, ?, ?, ?, ?, ?)')
-                .bind(crypto.randomUUID(), bookId, String(c.title || `Chapitre ${i + 1}`).slice(0, 80), String(c.content || ''), i, now, wordCountOf(c.content))
+                .bind(crypto.randomUUID(), bookId, String(c.title || `Chapitre ${i + 1}`).slice(0, 80), chtml, i, now, wordCountOf(chtml))
             )
           })
         }
@@ -892,6 +1051,15 @@ export default {
       if (bookMatch) {
         const bookId = bookMatch[1]
         const rest = bookMatch[2] || ''
+
+        // Contrôle d'accès : les interactions (like/stat/commentaires) exigent
+        // un livre existant et accessible (public, ou le mien).
+        if (rest === '/like' || rest === '/stat' || rest === '/comments' || rest.startsWith('/comments/')) {
+          const access = await db.prepare('SELECT owner_id, is_public FROM books WHERE id = ?').bind(bookId).first()
+          if (!access || (access.is_public !== 1 && access.owner_id !== me.id)) {
+            return json({ error: 'Livre introuvable.' }, 404)
+          }
+        }
 
         // ---- Interactions publiques (likes, commentaires, stats) ----
         if (rest === '/like') {
@@ -1051,7 +1219,7 @@ export default {
         if (req.method === 'POST' && rest === '/chapters') {
           const body = (await readJson(req)) || {}
           const title = String(body.title ?? '').trim().slice(0, 80) || 'Sans titre'
-          const content = String(body.content ?? '')
+          const content = sanitizeHtml(String(body.content ?? '').slice(0, 200_000))
           if (wordCountOf(content) < 1) {
             return json({ error: 'Écris au moins un mot avant d’enregistrer.' }, 400)
           }
@@ -1086,7 +1254,7 @@ export default {
           if (req.method === 'PUT') {
             const body = (await readJson(req)) || {}
             const title = String(body.title ?? '').trim().slice(0, 80) || 'Sans titre'
-            const content = String(body.content ?? '')
+            const content = sanitizeHtml(String(body.content ?? '').slice(0, 200_000))
             const now = new Date().toISOString()
             const r = await db
               .prepare('UPDATE chapters SET title = ?, content = ?, updated_at = ?, word_count = ? WHERE id = ? AND book_id = ?')
@@ -1110,5 +1278,4 @@ export default {
       console.error(e)
       return json({ error: 'Erreur serveur, réessaie dans un instant.' }, 500)
     }
-  },
 }

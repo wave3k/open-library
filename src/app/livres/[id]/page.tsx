@@ -224,7 +224,7 @@ export default function BookDetailPage() {
 
           {chapters.length > 0 && (
             <div className="mt-4 max-w-xl rounded-xl bg-stone-50 p-3">
-              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-stone-400">Longueur des chapitres</p>
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-stone-500">Longueur des chapitres</p>
               <div className="flex h-16 items-end gap-1.5">
                 {chapters.map((c) => {
                   const w = countWords(c.content)
@@ -320,17 +320,17 @@ export default function BookDetailPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{ch.title || `Chapitre ${i + 1}`}</p>
-                <p className="text-xs text-stone-400">
+                <p className="text-xs text-stone-500">
                   {countWords(ch.content).toLocaleString('fr-FR')} mots
                   {ch.id === progress[book.id] && <span className="ml-1.5 font-semibold text-amber-700">· en cours</span>}
                 </p>
               </div>
               {isOwner && (
                 <span className="flex shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <button disabled={i === 0} onClick={() => moveChapter(ch.id, -1)} className="rounded p-1.5 text-stone-400 hover:bg-stone-200 disabled:opacity-30" aria-label={`Monter ${ch.title}`} title="Monter">
+                  <button disabled={i === 0} onClick={() => moveChapter(ch.id, -1)} className="rounded p-1.5 text-stone-500 hover:bg-stone-200 disabled:opacity-30" aria-label={`Monter ${ch.title}`} title="Monter">
                     <ChevronUp size={15} />
                   </button>
-                  <button disabled={i === chapters.length - 1} onClick={() => moveChapter(ch.id, 1)} className="rounded p-1.5 text-stone-400 hover:bg-stone-200 disabled:opacity-30" aria-label={`Descendre ${ch.title}`} title="Descendre">
+                  <button disabled={i === chapters.length - 1} onClick={() => moveChapter(ch.id, 1)} className="rounded p-1.5 text-stone-500 hover:bg-stone-200 disabled:opacity-30" aria-label={`Descendre ${ch.title}`} title="Descendre">
                     <ChevronDown size={15} />
                   </button>
                 </span>

@@ -33,6 +33,16 @@ export function ImageCropper({
   const [ready, setReady] = useState(false)
   const [boxW, setBoxW] = useState(280)
 
+  const dialogRef = useRef<HTMLDivElement>(null)
+
+  // Échap pour fermer + focus initial dans la modale
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
+    document.addEventListener('keydown', onKey)
+    dialogRef.current?.focus()
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onCancel])
+
   const wrapRef = useRef<HTMLDivElement>(null)
   const drag = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null)
   const original = useRef<HTMLImageElement | null>(null)
@@ -164,7 +174,7 @@ export function ImageCropper({
   return (
     <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onCancel} />
-      <div className="bg-card animate-scale-in relative flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-3xl shadow-2xl sm:max-h-[92vh] sm:max-w-lg sm:rounded-3xl">
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Recadrer l’image" className="bg-card animate-scale-in relative flex max-h-[96dvh] w-full flex-col overflow-hidden rounded-t-3xl shadow-2xl outline-none sm:max-h-[92vh] sm:max-w-lg sm:rounded-3xl">
         {/* En-tête */}
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h3 className="font-bold">Recadrer l’image</h3>

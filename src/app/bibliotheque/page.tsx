@@ -18,6 +18,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { BookGridSkeleton } from '@/components/skeleton'
 import { usePlume } from '@/components/plume-provider'
 import { BooksAPI, ReadingAPI, GENRES, bookWords, type Book, type ReadingBook } from '@/lib/plume'
+import { clickableProps } from '@/lib/a11y'
 
 const SORTS = [
   { id: 'recent', label: 'Récents' },
@@ -83,7 +84,7 @@ export default function BibliothequePage() {
       <div className="py-20 text-center">
         <p className="font-semibold">Connecte-toi pour voir ta bibliothèque.</p>
         <div className="mt-4 flex justify-center gap-2">
-          <a href="/connexion" className={buttonVariants()}>Se connecter</a>
+          <a href="/connexion?next=%2Fbibliotheque" className={buttonVariants()}>Se connecter</a>
           <a href="/inscription" className={buttonVariants({ variant: 'outline' })}>Créer un compte</a>
         </div>
       </div>
@@ -128,7 +129,7 @@ export default function BibliothequePage() {
     const resumeLabel = lastIdx >= 0 ? `Reprendre · ch. ${lastIdx + 1}` : (chapterCount(b) ? 'Commencer' : null)
     const readPct = extra && chapterCount(b) > 0 ? Math.round(((extra.chaptersRead ?? 0) / chapterCount(b)) * 100) : 0
     return (
-      <article key={b.id} className="book3d-lift hover-lift group bg-card flex cursor-pointer gap-4 rounded-2xl border p-4" onClick={() => router.push(`/livres/${b.id}`)}>
+      <article key={b.id} className="book3d-lift hover-lift group bg-card flex cursor-pointer gap-4 rounded-2xl border p-4" onClick={() => router.push(`/livres/${b.id}`)} {...clickableProps(() => router.push(`/livres/${b.id}`))}>
         <div className="py-1 pl-1">
           <BookCover book={b} title={b.title} author={b.author} genre={b.genre} size="md" />
         </div>
@@ -160,12 +161,12 @@ export default function BibliothequePage() {
               <div className="h-1.5 overflow-hidden rounded-full bg-stone-100 dark:bg-stone-800">
                 <div className={`h-full rounded-full ${extra?.finished ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${extra?.finished ? 100 : readPct}%` }} />
               </div>
-              <p className="mt-1 text-[11px] text-stone-400">
+              <p className="mt-1 text-[11px] text-stone-500">
                 {extra?.finished ? 'Terminé' : `${extra?.chaptersRead ?? 0}/${chapterCount(b)} chapitre(s) lus`}
               </p>
             </div>
           )}
-          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-400">
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
             <span>{chapterCount(b)} chapitre(s)</span>
             <span className="inline-flex items-center gap-1"><Eye size={12} /> {b.views}</span>
             <span className="inline-flex items-center gap-1"><Heart size={12} /> {b.likes}</span>
@@ -181,7 +182,7 @@ export default function BibliothequePage() {
               Fiche
             </button>
             {activeTab === 'mine' && (
-              <button onClick={() => setToDelete(b)} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-400 hover:bg-red-50 hover:text-red-600">
+              <button onClick={() => setToDelete(b)} className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-500 hover:bg-red-50 hover:text-red-600">
                 Supprimer
               </button>
             )}
@@ -195,7 +196,7 @@ export default function BibliothequePage() {
     <div className="space-y-5">
       <div className="bg-card flex w-fit flex-wrap rounded-xl p-1 shadow-sm">
         {TABS.map(({ id, label, icon: Icon, count }) => (
-          <button key={id} onClick={() => setTab(id)} className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === id ? 'bg-stone-900 text-white' : 'text-stone-500 hover:text-stone-800'}`}>
+          <button key={id} onClick={() => setTab(id)} aria-current={activeTab === id ? 'page' : undefined} className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${activeTab === id ? 'bg-stone-900 text-white' : 'text-stone-500 hover:text-stone-800'}`}>
             {Icon && <Icon size={14} />} {label}{typeof count === 'number' ? ` (${count})` : ''}
           </button>
         ))}
@@ -205,9 +206,9 @@ export default function BibliothequePage() {
         <>
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="relative w-full sm:w-72">
-              <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-500" />
               <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un titre, un auteur…" aria-label="Rechercher un livre" className="pl-9 pr-8" />
-              {q && <button onClick={() => setQ('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-1.5 text-stone-400 hover:text-stone-700" aria-label="Effacer la recherche">×</button>}
+              {q && <button onClick={() => setQ('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-1.5 text-stone-500 hover:text-stone-700" aria-label="Effacer la recherche">×</button>}
             </div>
             <Select value={genre} onValueChange={(v) => setGenre(v ?? 'Tous')}>
               <SelectTrigger className="w-36" aria-label="Filtrer par genre"><SelectValue /></SelectTrigger>
@@ -238,21 +239,21 @@ export default function BibliothequePage() {
             <>
               {activeTab !== 'for-you' && sourceBooks.length > 0 && list.length === 0 && (
                 <div className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-10 text-center">
-                  <BookOpen size={28} className="mx-auto text-stone-400" />
+                  <BookOpen size={28} className="mx-auto text-stone-500" />
                   <p className="mt-2 font-semibold text-stone-700">Aucun livre ne correspond</p>
                   <Button variant="outline" className="mt-4" onClick={() => { setQ(''); setGenre('Tous'); setOnlyFav(false) }}>Réinitialiser les filtres</Button>
                 </div>
               )}
               {activeTab === 'mine' && sourceBooks.length === 0 && (
                 <div className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-10 text-center">
-                  <BookOpen size={28} className="mx-auto text-stone-400" />
+                  <BookOpen size={28} className="mx-auto text-stone-500" />
                   <p className="mt-2 font-semibold text-stone-700">Tu n’as pas encore de livre</p>
                   <Button className="mt-4" onClick={() => router.push('/livres/nouveau')}>Créer un livre</Button>
                 </div>
               )}
               {activeTab === 'for-you' && recommended.length === 0 && (
                 <div className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-10 text-center">
-                  <Sparkles size={28} className="mx-auto text-stone-400" />
+                  <Sparkles size={28} className="mx-auto text-stone-500" />
                   <p className="mt-2 font-semibold text-stone-700">Pas encore de recommandations</p>
                   <p className="text-sm text-stone-500">Ajoute des genres préférés à ton profil, ou explore quelques livres.</p>
                   <Button variant="outline" className="mt-4" onClick={() => router.push('/profil')}>Compléter mon profil</Button>
@@ -260,7 +261,7 @@ export default function BibliothequePage() {
               )}
               {activeTab === 'explore' && sourceBooks.length === 0 && (
                 <div className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-10 text-center">
-                  <Globe size={28} className="mx-auto text-stone-400" />
+                  <Globe size={28} className="mx-auto text-stone-500" />
                   <p className="mt-2 font-semibold text-stone-700">Rien à explorer pour l’instant</p>
                 </div>
               )}
@@ -278,7 +279,7 @@ export default function BibliothequePage() {
           <BookGridSkeleton count={4} />
         ) : reading.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-10 text-center">
-            <BookMarked size={28} className="mx-auto text-stone-400" />
+            <BookMarked size={28} className="mx-auto text-stone-500" />
             <p className="mt-2 font-semibold text-stone-700">Aucune lecture pour l’instant</p>
             <p className="text-sm text-stone-500">Les livres que tu commences apparaîtront ici.</p>
             <Button variant="outline" className="mt-4" onClick={() => setTab('explore')}>Explorer des livres</Button>

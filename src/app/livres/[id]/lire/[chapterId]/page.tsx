@@ -6,6 +6,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, List, Type, Moon, Sun, BookOpen, 
 import { Button, buttonVariants } from '@/components/ui/button'
 import { usePlume } from '@/components/plume-provider'
 import { BooksAPI } from '@/lib/plume'
+import { sanitizeHtml } from '@/lib/sanitize'
 
 const THEMES = {
   papier: 'bg-[#f6f1e5] text-stone-900',
@@ -85,7 +86,7 @@ export default function ReaderPage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.tagName === 'BUTTON' || t.tagName === 'A' || t.isContentEditable)) return
       if (e.key === 'ArrowRight' && safeIdx < chapters.length - 1) {
         router.push(`/livres/${id}/lire/${chapters[safeIdx + 1].id}`)
       }
@@ -102,7 +103,7 @@ export default function ReaderPage() {
     return (
       <div className="py-20 text-center">
         <p className="font-semibold">Connecte-toi pour lire.</p>
-        <a href="/connexion" className={buttonVariants({ className: 'mt-4' })}>Se connecter</a>
+        <a href={`/connexion?next=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/')}`} className={buttonVariants({ className: 'mt-4' })}>Se connecter</a>
       </div>
     )
   }
@@ -164,7 +165,7 @@ export default function ReaderPage() {
       <div className="flex gap-4">
         {toc && (
           <aside className="bg-card w-60 shrink-0 rounded-2xl border p-3">
-            <p className="flex items-center gap-1.5 px-1 pb-2 text-xs font-bold uppercase text-stone-400">
+            <p className="flex items-center gap-1.5 px-1 pb-2 text-xs font-bold uppercase text-stone-500">
               <BookOpen size={13} /> Sommaire
             </p>
             <ol className="max-h-96 space-y-1 overflow-y-auto">
@@ -175,7 +176,7 @@ export default function ReaderPage() {
                     className={`w-full rounded-lg px-2.5 py-2 text-left text-sm ${i === safeIdx ? 'bg-amber-100 font-semibold text-amber-900' : 'hover:bg-stone-100'}`}
                     aria-current={i === safeIdx ? 'true' : undefined}
                   >
-                    <span className="mr-1.5 text-xs text-stone-400">{i + 1}.</span>
+                    <span className="mr-1.5 text-xs text-stone-500">{i + 1}.</span>
                     {c.title || `Chapitre ${i + 1}`}
                   </button>
                 </li>
@@ -194,7 +195,7 @@ export default function ReaderPage() {
                 <span>❦</span>
                 <div className="h-px flex-1 bg-current" />
               </div>
-              <div className="book-page book-prose" style={{ fontSize }} dangerouslySetInnerHTML={{ __html: chapter.content || '<p></p>' }} />
+              <div className="book-page book-prose" style={{ fontSize }} dangerouslySetInnerHTML={{ __html: sanitizeHtml(chapter.content || '<p></p>') }} />
               <p className="mt-10 text-center text-sm opacity-50">— {safeIdx + 1} —</p>
             </div>
           </div>
@@ -203,7 +204,7 @@ export default function ReaderPage() {
             <Button variant="secondary" disabled={!prev} onClick={() => prev && router.push(`/livres/${book.id}/lire/${prev.id}`)}>
               <ChevronLeft size={16} /> <span className="hidden sm:inline">Chapitre précédent</span><span className="sm:hidden">Préc.</span>
             </Button>
-            <span className="shrink-0 text-xs text-stone-400">{progress}% lu · ← → pour naviguer</span>
+            <span className="shrink-0 text-xs text-stone-500">{progress}% lu · ← → pour naviguer</span>
             {next ? (
               <Button onClick={() => router.push(`/livres/${book.id}/lire/${next.id}`)}>
                 <span className="hidden sm:inline">Chapitre suivant</span><span className="sm:hidden">Suiv.</span> <ChevronRight size={16} />

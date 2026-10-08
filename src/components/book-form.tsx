@@ -35,7 +35,7 @@ import { cn } from '@/lib/utils'
 const LIMITS = { title: 80, author: 40, description: 500 }
 
 function Counter({ count, max }: { count: number; max: number }) {
-  return <span className={cn('text-[11px] tabular-nums', count > max ? 'font-semibold text-red-600' : 'text-stone-400')}>{count}/{max}</span>
+  return <span className={cn('text-[11px] tabular-nums', count > max ? 'font-semibold text-red-600' : 'text-stone-500')}>{count}/{max}</span>
 }
 
 function Chip({ active, onClick, children, title }: { active?: boolean; onClick: () => void; children: React.ReactNode; title?: string }) {
@@ -182,7 +182,7 @@ export function BookForm({
           <div>
             <div className="mb-1 flex items-center justify-between">
               <Label className="flex items-center gap-1.5"><Tags size={14} /> Tags</Label>
-              <span className="text-[11px] text-stone-400">{tags.length}/5</span>
+              <span className="text-[11px] text-stone-500">{tags.length}/5</span>
             </div>
             <div className="flex gap-2">
               <Input value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }} placeholder="ex. magie, slow burn" maxLength={20} />
@@ -193,7 +193,7 @@ export function BookForm({
                 {tags.map((t) => (
                   <span key={t} className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 text-xs font-medium text-stone-700">
                     #{t}
-                    <button type="button" onClick={() => setTags((p) => p.filter((x) => x !== t))} aria-label={`Retirer ${t}`} className="text-stone-400 hover:text-red-600"><X size={12} /></button>
+                    <button type="button" onClick={() => setTags((p) => p.filter((x) => x !== t))} aria-label={`Retirer ${t}`} className="text-stone-500 hover:text-red-600"><X size={12} /></button>
                   </span>
                 ))}
               </div>
@@ -209,7 +209,7 @@ export function BookForm({
                 <Lock size={15} /> Privé
               </button>
             </div>
-            <p className="mt-1 text-xs text-stone-400">Un livre n’est visible des autres qu’une fois publié ET public. Sans chapitre, il reste en brouillon.</p>
+            <p className="mt-1 text-xs text-stone-500">Un livre n’est visible des autres qu’une fois publié ET public. Sans chapitre, il reste en brouillon.</p>
           </div>
         </section>
 
@@ -241,7 +241,7 @@ export function BookForm({
                   </Button>
                 )}
               </div>
-              <p className="mt-1.5 text-xs text-stone-400">L’image est recadrée puis affichée telle quelle, sans texte par-dessus.</p>
+              <p className="mt-1.5 text-xs text-stone-500">L’image est recadrée puis affichée telle quelle, sans texte par-dessus.</p>
             </div>
           ) : (
             <>

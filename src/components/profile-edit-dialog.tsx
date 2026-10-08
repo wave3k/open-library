@@ -116,7 +116,7 @@ export function ProfileEditDialog({
           <div>
             <div className="mb-1 flex items-baseline justify-between">
               <Label htmlFor="pf-bio">Bio</Label>
-              <span className="text-[11px] text-stone-400">{bio.trim().length}/300</span>
+              <span className="text-[11px] text-stone-500">{bio.trim().length}/300</span>
             </div>
             <Textarea id="pf-bio" value={bio} onChange={(e) => setBio(e.target.value)} rows={3} maxLength={300} placeholder="Parle de toi et de ce que tu écris…" />
           </div>
@@ -133,7 +133,7 @@ export function ProfileEditDialog({
           </div>
           <div>
             <Label>Emoji d’avatar</Label>
-            <p className="mb-1.5 text-xs text-stone-400">Utilisé si aucune photo n’est définie.</p>
+            <p className="mb-1.5 text-xs text-stone-500">Utilisé si aucune photo n’est définie.</p>
             <div className="flex flex-wrap items-center gap-1.5">
               <input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={8} placeholder="🙂" className="h-9 w-14 rounded-md border border-stone-200 text-center text-lg" />
               {EMOJI_CHOICES.slice(0, 16).map((em) => (
@@ -144,7 +144,7 @@ export function ProfileEditDialog({
 
           <div>
             <Label>Genres préférés</Label>
-            <p className="mb-1.5 text-xs text-stone-400">Pour tes recommandations.</p>
+            <p className="mb-1.5 text-xs text-stone-500">Pour tes recommandations.</p>
             <div className="flex flex-wrap gap-1.5">
               {GENRES.map((g) => {
                 const on = prefs.includes(g)

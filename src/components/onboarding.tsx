@@ -37,7 +37,9 @@ export function Onboarding() {
       await ProfileAPI.update({ referral_source: referral || 'other', preferences: prefs, onboarded: true })
       await refreshStats()
       toast.success(skipped ? 'On file vers ta bibliothèque !' : 'Merci, c’est noté ✨')
-      router.push('/bibliotheque')
+      let next: string | null = null
+      try { next = sessionStorage.getItem('plume-next'); sessionStorage.removeItem('plume-next') } catch { /* ignore */ }
+      router.push(next && next.startsWith('/') ? next : '/bibliotheque')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Enregistrement impossible.')
     } finally {
@@ -134,7 +136,7 @@ export function Onboarding() {
               <Button variant="outline" onClick={() => setStep(0)} disabled={saving}><ArrowLeft size={16} /> Retour</Button>
             )}
             {step === 0 ? (
-              <Button size="lg" onClick={() => setStep(1)} disabled={!referral}>
+              <Button size="lg" onClick={() => setStep(1)}>
                 Continuer <ArrowRight size={16} />
               </Button>
             ) : (

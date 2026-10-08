@@ -10,10 +10,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { BookCover } from '@/components/book-cover'
 import { PublicAPI, GENRES, type Book } from '@/lib/plume'
+import { clickableProps } from '@/lib/a11y'
 
 function BookCard({ book, onOpen }: { book: Book; onOpen: (b: Book) => void }) {
   return (
-    <article className="book3d-lift hover-lift group bg-card flex cursor-pointer flex-col gap-3 rounded-2xl border p-4" onClick={() => onOpen(book)}>
+    <article className="book3d-lift hover-lift group bg-card flex cursor-pointer flex-col gap-3 rounded-2xl border p-4" onClick={() => onOpen(book)} {...clickableProps(() => onOpen(book))}>
       <div className="flex justify-center pt-1">
         <BookCover book={book} title={book.title} author={book.author} genre={book.genre} size="md" />
       </div>
@@ -22,7 +23,7 @@ function BookCard({ book, onOpen }: { book: Book; onOpen: (b: Book) => void }) {
         <h3 className="mt-1.5 truncate font-bold">{book.title}</h3>
         <p className="truncate text-sm text-stone-500">par {book.author}</p>
         <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-stone-500">{book.description || 'Aucune description.'}</p>
-        <p className="mt-1.5 text-xs text-stone-400">
+        <p className="mt-1.5 text-xs text-stone-500">
           {book.chapter_count ?? 0} chapitre(s) · {book.likes} likes · {book.views} lectures
         </p>
       </div>
@@ -33,14 +34,22 @@ function BookCard({ book, onOpen }: { book: Book; onOpen: (b: Book) => void }) {
 export function Landing() {
   const router = useRouter()
   const [trending, setTrending] = useState<Book[]>([])
+  const [failed, setFailed] = useState(false)
   const [query, setQuery] = useState('')
   const [loadingTrending, setLoadingTrending] = useState(true)
 
-  useEffect(() => {
+  const loadTrending = () => {
+    setFailed(false)
+    setLoadingTrending(true)
     PublicAPI.trending()
-      .then(setTrending)
-      .catch(() => {})
+      .then((b) => { setTrending(b); setFailed(false) })
+      .catch(() => setFailed(true))
       .finally(() => setLoadingTrending(false))
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadTrending()
   }, [])
 
   // Redirige vers la page de recherche (résultats complets)
@@ -78,7 +87,7 @@ export function Landing() {
             className="relative mt-6 max-w-lg"
             role="search"
           >
-            <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
+            <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-500" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -123,12 +132,18 @@ export function Landing() {
         </div>
 
         {loadingTrending ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-stone-400">
+          <div className="flex items-center justify-center gap-2 py-16 text-stone-500">
             <Loader2 size={20} className="animate-spin" /> Chargement des tendances…
+          </div>
+        ) : failed ? (
+          <div className="rounded-2xl border border-dashed p-12 text-center">
+            <p className="font-semibold">Impossible de charger les livres</p>
+            <p className="text-muted-foreground text-sm">Vérifie ta connexion puis réessaie.</p>
+            <Button variant="outline" className="mt-4" onClick={loadTrending}>Réessayer</Button>
           </div>
         ) : trending.length === 0 ? (
           <div className="rounded-2xl border border-dashed p-12 text-center">
-            <BookOpen size={28} className="mx-auto text-stone-400" />
+            <BookOpen size={28} className="mx-auto text-stone-500" />
             <p className="mt-2 font-semibold">Pas encore de livres publiés</p>
             <p className="text-muted-foreground text-sm">Sois le premier à publier une histoire !</p>
           </div>

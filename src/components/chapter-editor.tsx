@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { usePlume } from '@/components/plume-provider'
 import { BooksAPI, countWords } from '@/lib/plume'
+import { sanitizeHtml } from '@/lib/sanitize'
 import { cn } from '@/lib/utils'
 
 const TITLE_MAX = 80
@@ -106,6 +107,7 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
   const [preview, setPreview] = useState(false)
   const [error, setError] = useState('')
   const [askLeave, setAskLeave] = useState(false)
+  const [askDiscard, setAskDiscard] = useState(false)
   const [draftAt, setDraftAt] = useState<string | null>(restored?.savedAt ?? null)
   const [saving, setSaving] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -176,7 +178,7 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
     return (
       <div className="py-20 text-center">
         <p className="font-semibold">Connecte-toi pour écrire.</p>
-        <a href="/connexion" className={buttonVariants({ className: 'mt-4' })}>Se connecter</a>
+        <a href={`/connexion?next=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/')}`} className={buttonVariants({ className: 'mt-4' })}>Se connecter</a>
       </div>
     )
   }
@@ -239,8 +241,8 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
         <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
           <History size={14} />
           <span>Brouillon restauré et autosauvegardé{draftAt ? ` (${fmtTime(draftAt)})` : ''} — rien n’est perdu.</span>
-          <button onClick={discardDraft} className="ml-auto flex items-center gap-1 font-semibold hover:underline">
-            <X size={13} /> Ignorer
+          <button onClick={() => setAskDiscard(true)} className="ml-auto flex items-center gap-1 font-semibold hover:underline">
+            <X size={13} /> Abandonner le brouillon
           </button>
         </div>
       )}
@@ -248,7 +250,7 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
       <div>
         <div className="mb-1 flex items-baseline justify-between">
           <Label htmlFor="ch-title">Titre du chapitre</Label>
-          <span className="text-[11px] tabular-nums text-stone-400">{title.trim().length}/{TITLE_MAX}</span>
+          <span className="text-[11px] tabular-nums text-stone-500">{title.trim().length}/{TITLE_MAX}</span>
         </div>
         <Input id="ch-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="Titre du chapitre" className="py-3 text-lg font-bold" />
       </div>
@@ -256,7 +258,7 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
       {preview ? (
         <div className="bg-card rounded-2xl border p-8">
           <h3 className="mb-6 text-center text-xl font-bold">{title || `Chapitre ${index + 1}`}</h3>
-          <div className="book-prose book-page mx-auto max-w-2xl text-[17px]" dangerouslySetInnerHTML={{ __html: html || '<p><em>Rien à prévisualiser.</em></p>' }} />
+          <div className="book-prose book-page mx-auto max-w-2xl text-[17px]" dangerouslySetInnerHTML={{ __html: sanitizeHtml(html || '<p><em>Rien à prévisualiser.</em></p>') }} />
         </div>
       ) : (
         <div>
@@ -267,22 +269,30 @@ export function ChapterEditor({ bookId, chapterId }: { bookId: string; chapterId
           {error ? (
             <p className="mt-1 text-xs font-medium text-red-600" role="alert">{error}</p>
           ) : (
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-stone-400"><PenLine size={12} /> Astuce : Ctrl+S pour enregistrer.</p>
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-stone-500"><PenLine size={12} /> Astuce : Ctrl+S pour enregistrer.</p>
           )}
         </div>
       )}
 
-      <p className="text-right text-xs text-stone-400">
+      <p className="text-right text-xs text-stone-500">
         {words.toLocaleString('fr-FR')} mots · ~{Math.max(1, Math.round(words / 200))} min de lecture
       </p>
 
       <ConfirmDialog
         open={askLeave}
-        title="Quitter sans enregistrer ?"
-        message="Tes modifications seront conservées en brouillon automatique et restaurées à ta prochaine visite."
+        title="Quitter l’éditeur ?"
+        message="Tes modifications sont conservées en brouillon local et restaurées à ta prochaine visite."
         confirmLabel="Quitter"
         onConfirm={() => { setAskLeave(false); router.push(`/livres/${bookId}`) }}
         onCancel={() => setAskLeave(false)}
+      />
+      <ConfirmDialog
+        open={askDiscard}
+        title="Abandonner le brouillon ?"
+        message="Le contenu non enregistré sera définitivement effacé et la version enregistrée sera rétablie."
+        confirmLabel="Abandonner"
+        onConfirm={() => { setAskDiscard(false); discardDraft() }}
+        onCancel={() => setAskDiscard(false)}
       />
     </div>
   )

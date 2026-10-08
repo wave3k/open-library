@@ -129,7 +129,7 @@ export interface ReadingBook extends Book {
 
 export interface Notification {
   id: string
-  type: 'like' | 'comment' | 'comment_like' | 'follow'
+  type: 'like' | 'comment' | 'comment_like' | 'follow' | 'follow_request' | 'follow_accepted'
   read: boolean
   created_at: string
   book_id: string | null
@@ -259,6 +259,7 @@ async function request<T>(path: string, opts: { method?: string; body?: unknown;
     method,
     headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(15000),
   })
   let data: { error?: string } & Record<string, unknown> = {}
   try {
@@ -345,11 +346,19 @@ export const AnalyticsAPI = {
 
 export const NotificationsAPI = {
   list: () => request<{ notifications: Notification[]; unread: number }>('/api/notifications'),
+  markRead: (id: string) => request<{ ok: boolean }>(`/api/notifications/${id}/read`, { method: 'POST' }).catch(() => ({ ok: false })),
   markAllRead: () => request<{ ok: boolean }>('/api/notifications/read', { method: 'POST' }),
 }
 
 export const ReadingAPI = {
   list: () => request<{ books: ReadingBook[] }>('/api/reading').then((d) => d.books),
+}
+
+export const FollowsAPI = {
+  requests: () =>
+    request<{ requests: AuthorRef[] }>('/api/follows/requests').then((d) => d.requests),
+  respond: (followerId: string, accept: boolean) =>
+    request<{ ok: boolean }>('/api/follows/respond', { method: 'POST', body: { follower_id: followerId, accept } }),
 }
 
 export const PublicAPI = {
@@ -372,16 +381,17 @@ export const ProfileAPI = {
       followers: number
       following: number
       is_following: boolean
+      follow_status: 'accepted' | 'pending' | null
       restricted: boolean
       visibility: 'public' | 'followers' | 'private'
     }>(`/api/users/${encodeURIComponent(username)}`),
   follow: (username: string) =>
-    request<{ followers: number; following: number; is_following: boolean }>(
+    request<{ followers: number; following: number; is_following: boolean; follow_status: string | null }>(
       `/api/users/${encodeURIComponent(username)}/follow`,
       { method: 'POST' }
     ),
   unfollow: (username: string) =>
-    request<{ followers: number; following: number; is_following: boolean }>(
+    request<{ followers: number; following: number; is_following: boolean; follow_status: string | null }>(
       `/api/users/${encodeURIComponent(username)}/follow`,
       { method: 'DELETE' }
     ),
@@ -389,7 +399,7 @@ export const ProfileAPI = {
     request<{ user: User; stats: ProfileStats }>('/api/profile', { method: 'PUT', body: p }),
   changePassword: (current_password: string, new_password: string) =>
     request<{ ok: boolean }>('/api/profile/password', { method: 'POST', body: { current_password, new_password } }),
-  deleteAccount: () => request<{ ok: boolean }>('/api/account', { method: 'DELETE' }),
+  deleteAccount: (password: string) => request<{ ok: boolean }>('/api/account', { method: 'DELETE', body: { password } }),
 }
 
 export const MediaAPI = {

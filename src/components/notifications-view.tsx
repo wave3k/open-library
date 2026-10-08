@@ -26,7 +26,9 @@ function iconFor(type: Notification['type']) {
     case 'like': return <Heart size={15} className="text-red-500" />
     case 'comment': return <MessageSquare size={15} className="text-sky-500" />
     case 'comment_like': return <Heart size={15} className="text-pink-500" />
-    case 'follow': return <UserPlus size={15} className="text-emerald-500" />
+    case 'follow':
+    case 'follow_request':
+    case 'follow_accepted': return <UserPlus size={15} className="text-emerald-500" />
   }
 }
 
@@ -36,6 +38,8 @@ function textFor(n: Notification): string {
     case 'comment': return 'a commenté ton livre'
     case 'comment_like': return 'a aimé ton commentaire'
     case 'follow': return 'a commencé à te suivre'
+    case 'follow_request': return 'demande à te suivre'
+    case 'follow_accepted': return 'a accepté ta demande d’abonnement'
   }
 }
 
@@ -88,8 +92,15 @@ export function NotificationsView() {
   }
 
   const open = (n: Notification) => {
-    if (n.type === 'follow' && n.actor) router.push(`/u/${n.actor.username}`)
-    else if (n.book_id) router.push(`/livres/${n.book_id}`)
+    if (!n.read) {
+      setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)))
+      NotificationsAPI.markRead(n.id).then(() => refreshStats()).catch(() => {})
+    }
+    if (n.type === 'follow' || n.type === 'follow_request' || n.type === 'follow_accepted') {
+      if (n.actor) router.push(`/u/${n.actor.username}`)
+    } else if (n.book_id) {
+      router.push(`/livres/${n.book_id}`)
+    }
   }
 
   const unread = items.filter((n) => !n.read).length
@@ -122,7 +133,7 @@ export function NotificationsView() {
         </div>
       ) : items.length === 0 ? (
         <div className="bg-card rounded-2xl border border-dashed p-12 text-center">
-          <Bell size={28} className="mx-auto text-stone-400" />
+          <Bell size={28} className="mx-auto text-stone-500" />
           <p className="mt-2 font-semibold">Aucune notification</p>
           <p className="text-muted-foreground text-sm">Quand quelqu’un aime, commente ou te suit, tu le verras ici.</p>
         </div>

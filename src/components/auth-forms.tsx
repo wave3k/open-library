@@ -168,6 +168,10 @@ export function SignupForm() {
         password,
       })
       await login(data.user, data.token)
+      try {
+        const n = new URLSearchParams(window.location.search).get('next')
+        if (n && n.startsWith('/')) sessionStorage.setItem('plume-next', n)
+      } catch { /* ignore */ }
       router.push('/onboarding')
     } catch (err) {
       setServerError(err instanceof Error ? err.message : 'Erreur d’inscription.')
@@ -182,7 +186,7 @@ export function SignupForm() {
         <div>
           <div className="mb-1"><Label htmlFor="up-name">Nom d’affichage</Label></div>
           <Input id="up-name" value={displayName} onChange={(e) => { setDisplayName(e.target.value); setErrors((p) => ({ ...p, name: undefined })) }} placeholder="Le nom que verront les lecteurs" maxLength={40} autoFocus aria-invalid={!!errors.name} className={errors.name ? 'border-red-400' : ''} />
-          {errors.name ? <p className="mt-1 text-xs font-medium text-red-600">{errors.name}</p> : <p className="mt-1 text-xs text-stone-400">Ex. « Léa Moreau ». Modifiable à tout moment.</p>}
+          {errors.name ? <p className="mt-1 text-xs font-medium text-red-600">{errors.name}</p> : <p className="mt-1 text-xs text-stone-500">Ex. « Léa Moreau ». Modifiable à tout moment.</p>}
         </div>
         <div>
           <div className="mb-1"><Label htmlFor="up-username">Nom d’utilisateur</Label></div>
@@ -190,7 +194,7 @@ export function SignupForm() {
             <span className="text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 text-sm">@</span>
             <Input id="up-username" value={username} onChange={(e) => { setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '')); setErrors((p) => ({ ...p, username: undefined })) }} placeholder="lea_moreau" maxLength={24} aria-invalid={!!errors.username} className={cn('pl-7', errors.username ? 'border-red-400' : '')} />
             <span className="absolute right-3 top-1/2 -translate-y-1/2">
-              {checking && <Loader2 size={14} className="animate-spin text-stone-400" />}
+              {checking && <Loader2 size={14} className="animate-spin text-stone-500" />}
               {!checking && available === true && <Check size={15} className="text-emerald-600" />}
               {!checking && available === false && <X size={15} className="text-red-600" />}
             </span>
@@ -200,7 +204,7 @@ export function SignupForm() {
           ) : available === false ? (
             <p className="mt-1 text-xs font-medium text-red-600">Ce nom d’utilisateur est déjà pris.</p>
           ) : (
-            <p className="mt-1 text-xs text-stone-400">Ton profil : open-library/u/{username || '…'}</p>
+            <p className="mt-1 text-xs text-stone-500">Ton profil : open-library/u/{username || '…'}</p>
           )}
         </div>
         <div>
@@ -211,7 +215,7 @@ export function SignupForm() {
         <div>
           <div className="mb-1"><Label htmlFor="up-password">Mot de passe</Label></div>
           <Input id="up-password" type="password" value={password} onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })) }} placeholder="••••••••" maxLength={128} autoComplete="new-password" aria-invalid={!!errors.password} className={errors.password ? 'border-red-400' : ''} />
-          {errors.password ? <p className="mt-1 text-xs font-medium text-red-600">{errors.password}</p> : <p className="mt-1 text-xs text-stone-400">8 caractères minimum.</p>}
+          {errors.password ? <p className="mt-1 text-xs font-medium text-red-600">{errors.password}</p> : <p className="mt-1 text-xs text-stone-500">8 caractères minimum.</p>}
         </div>
         <div>
           <div className="mb-1"><Label htmlFor="up-confirm">Confirmer le mot de passe</Label></div>

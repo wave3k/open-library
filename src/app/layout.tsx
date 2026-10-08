@@ -30,8 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <PlumeProvider>
             <ScrollReset />
+            <a href="#main" className="skip-link">Aller au contenu</a>
             <SiteHeader />
-            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
+            <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
             <SiteFooter />
             <Toaster position="bottom-center" richColors={false} />
             <Analytics />

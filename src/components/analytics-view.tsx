@@ -120,7 +120,7 @@ export function AnalyticsView() {
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-stone-100 text-sm font-bold text-stone-600">{i + 1}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{b.title}</p>
-                  <p className="text-xs text-stone-400">{b.chapters} ch. · {b.words.toLocaleString('fr-FR')} mots</p>
+                  <p className="text-xs text-stone-500">{b.chapters} ch. · {b.words.toLocaleString('fr-FR')} mots</p>
                 </div>
                 <div className="text-muted-foreground shrink-0 text-right text-xs">
                   <span className="flex items-center gap-1"><Eye size={12} /> {b.views}</span>

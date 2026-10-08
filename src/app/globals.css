@@ -219,9 +219,6 @@ body {
 .dark .bg-stone-200 {
   background-color: oklch(0.32 0.006 286);
 }
-.dark .bg-stone-900 {
-  background-color: oklch(0.92 0.004 286);
-}
 .dark .text-stone-900,
 .dark .text-stone-800 {
   color: oklch(0.97 0 0);
@@ -466,6 +463,36 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+  .book3d-lift:hover .book3d,
+  .hover-lift:hover {
+    transform: none;
+  }
+}
+
+/* Focus visible sur l'éditeur riche */
+.tiptap:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Décalage pour l'en-tête sticky (focus / ancres) + lien d'évitement */
+html {
+  scroll-padding-top: 4.5rem;
+}
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: -3rem;
+  z-index: 100;
+  border-radius: 0.75rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  transition: top 0.15s ease;
+}
+.skip-link:focus {
+  top: 0.75rem;
 }
 
 /* Signature HQStudio */

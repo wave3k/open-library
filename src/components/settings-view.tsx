@@ -102,10 +102,10 @@ export function SettingsView() {
     }
   }
 
-  const deleteAccount = async () => {
+  const deleteAccount = async (password?: string) => {
     setDeleting(true)
     try {
-      await ProfileAPI.deleteAccount()
+      await ProfileAPI.deleteAccount(password ?? '')
       await logout()
       toast.success('Compte supprimé')
     } catch (err) {
@@ -169,7 +169,7 @@ export function SettingsView() {
           <div>
             <div className="mb-1 flex items-baseline justify-between">
               <Label htmlFor="st-bio">Bio</Label>
-              <span className="text-[11px] text-stone-400">{bio.trim().length}/300</span>
+              <span className="text-[11px] text-stone-500">{bio.trim().length}/300</span>
             </div>
             <Textarea id="st-bio" value={bio} onChange={(e) => setBio(e.target.value)} rows={2} maxLength={300} placeholder="Parle de toi en quelques mots…" />
           </div>
@@ -278,7 +278,8 @@ export function SettingsView() {
         title="Supprimer définitivement ton compte ?"
         message="Tout sera effacé : tes livres, chapitres, likes et commentaires. Cette action est irréversible."
         confirmLabel={deleting ? 'Suppression…' : 'Supprimer mon compte'}
-        onConfirm={deleteAccount}
+        requirePassword
+        onConfirm={(pwd) => deleteAccount(pwd)}
         onCancel={() => setAskDelete(false)}
       />
     </div>

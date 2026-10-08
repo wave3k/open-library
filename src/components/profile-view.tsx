@@ -15,7 +15,8 @@ import { ProfileEditDialog } from '@/components/profile-edit-dialog'
 import { ImageCropper } from '@/components/image-cropper'
 import { ProfileSkeleton } from '@/components/skeleton'
 import { usePlume } from '@/components/plume-provider'
-import { MediaAPI, ProfileAPI, bookWords, type Book, type ProfileStats, type User } from '@/lib/plume'
+import { MediaAPI, ProfileAPI, FollowsAPI, bookWords, type AuthorRef, type Book, type ProfileStats, type User } from '@/lib/plume'
+import { clickableProps } from '@/lib/a11y'
 
 function Stat({ icon: Icon, label, value }: { icon: typeof Heart; label: string; value: number }) {
   return (
@@ -31,7 +32,7 @@ function Stat({ icon: Icon, label, value }: { icon: typeof Heart; label: string;
 function BookRow({ book, onOpen }: { book: Book; onOpen: () => void }) {
   const isDraft = book.chapter_count === 0
   return (
-    <article className="book3d-lift hover-lift bg-card flex cursor-pointer gap-4 rounded-2xl border p-4" onClick={onOpen}>
+    <article className="book3d-lift hover-lift bg-card flex cursor-pointer gap-4 rounded-2xl border p-4" onClick={onOpen} {...clickableProps(onOpen)}>
       <div className="py-1 pl-1">
         <BookCover book={book} title={book.title} author={book.author} genre={book.genre} size="md" />
       </div>
@@ -46,7 +47,7 @@ function BookRow({ book, onOpen }: { book: Book; onOpen: () => void }) {
         </div>
         <h3 className="mt-1.5 truncate font-bold">{book.title}</h3>
         <p className="line-clamp-2 text-xs leading-relaxed text-stone-500">{book.description || 'Aucune description.'}</p>
-        <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-400">
+        <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500">
           <span>{book.chapter_count ?? book.chapters.length} chapitre(s)</span>
           <span>{bookWords(book).toLocaleString('fr-FR')} mots</span>
           <span className="inline-flex items-center gap-1"><Eye size={12} /> {book.views}</span>
@@ -65,6 +66,8 @@ export function ProfileView({ username }: { username?: string }) {
   const [remote, setRemote] = useState<{ user: User; stats: ProfileStats; books: Book[] } | null>(null)
   const [counts, setCounts] = useState<{ followers: number; following: number } | null>(null)
   const [isFollowing, setIsFollowing] = useState(false)
+  const [followStatus, setFollowStatus] = useState<'accepted' | 'pending' | null>(null)
+  const [requests, setRequests] = useState<AuthorRef[]>([])
   const [restricted, setRestricted] = useState(false)
   const [visibility, setVisibility] = useState<'public' | 'followers' | 'private'>('public')
   const [followBusy, setFollowBusy] = useState(false)
@@ -84,6 +87,7 @@ export function ProfileView({ username }: { username?: string }) {
       const d = await ProfileAPI.get(handle)
       setCounts({ followers: d.followers, following: d.following })
       setIsFollowing(d.is_following)
+      setFollowStatus((d.follow_status ?? null) as 'accepted' | 'pending' | null)
       setRestricted(!!d.restricted)
       setVisibility(d.visibility || 'public')
       if (!isSelf) setRemote({ user: d.user, stats: d.stats as ProfileStats, books: d.books })
@@ -99,6 +103,29 @@ export function ProfileView({ username }: { username?: string }) {
     loadProfile()
   }, [loadProfile])
 
+  // Demandes d'abonnement en attente (profil personnel)
+  const [responding, setResponding] = useState<string | null>(null)
+  useEffect(() => {
+    if (!isSelf || !me) return
+    FollowsAPI.requests()
+      .then(setRequests)
+      .catch(() => setRequests([]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSelf, me?.id])
+
+  const answerRequest = async (followerId: string, accept: boolean) => {
+    setResponding(followerId)
+    try {
+      await FollowsAPI.respond(followerId, accept)
+      setRequests((prev) => prev.filter((r) => r.id !== followerId))
+      toast.success(accept ? 'Abonnement accepté' : 'Demande refusée')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Action impossible.')
+    } finally {
+      setResponding(null)
+    }
+  }
+
   const toggleFollow = async () => {
     const handle = profile?.username
     if (!handle) return
@@ -110,9 +137,10 @@ export function ProfileView({ username }: { username?: string }) {
     try {
       const res = next ? await ProfileAPI.follow(handle) : await ProfileAPI.unfollow(handle)
       setIsFollowing(res.is_following)
+      setFollowStatus((res.follow_status ?? null) as 'accepted' | 'pending' | null)
       setCounts({ followers: res.followers, following: res.following })
-      // Débloque le contenu si le profil est réservé aux abonnés
-      if (next) await loadProfile()
+      // Débloque le contenu si l'abonnement est accepté
+      if (next && res.follow_status === 'accepted') await loadProfile()
     } catch (err) {
       setIsFollowing(!next)
       toast.error(err instanceof Error ? err.message : 'Action impossible.')
@@ -176,7 +204,7 @@ export function ProfileView({ username }: { username?: string }) {
               {me && (
                 <Button variant={isFollowing ? 'outline' : 'default'} onClick={toggleFollow} disabled={followBusy}>
                   {followBusy ? <Loader2 size={15} className="animate-spin" /> : null}
-                  {isFollowing ? 'Abonné ✓' : 'Suivre'}
+                  {isFollowing ? 'Abonné ✓' : followStatus === 'pending' ? 'Demande envoyée' : 'Suivre'}
                 </Button>
               )}
             </div>
@@ -269,7 +297,7 @@ export function ProfileView({ username }: { username?: string }) {
           {isSelf && (
             <button
               onClick={() => setChooser('banner')}
-              className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 text-sm font-semibold text-white opacity-0 transition group-hover:opacity-100"
+              className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 text-sm font-semibold text-white opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
             >
               <ImagePlus size={18} /> Changer la bannière
             </button>
@@ -285,7 +313,7 @@ export function ProfileView({ username }: { username?: string }) {
               {isSelf && (
                 <button
                   onClick={() => setChooser('avatar')}
-                  className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition group-hover:opacity-100"
+                  className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100"
                   aria-label="Changer la photo de profil"
                 >
                   <Camera size={22} />
@@ -314,7 +342,7 @@ export function ProfileView({ username }: { username?: string }) {
             ) : (
               <Button key={isFollowing ? 'following' : 'follow'} variant={isFollowing ? 'outline' : 'default'} className="animate-pop" onClick={toggleFollow} disabled={followBusy}>
                 {followBusy ? <Loader2 size={15} className="animate-spin" /> : null}
-                {isFollowing ? 'Abonné ✓' : 'Suivre'}
+                {isFollowing ? 'Abonné ✓' : followStatus === 'pending' ? 'Demande envoyée' : 'Suivre'}
               </Button>
             )}
           </div>
@@ -332,6 +360,27 @@ export function ProfileView({ username }: { username?: string }) {
           )}
         </div>
       </div>
+
+      {/* Demandes d'abonnement (profil personnel) */}
+      {isSelf && requests.length > 0 && (
+        <div className="bg-card rounded-2xl border p-5">
+          <h2 className="flex items-center gap-2 font-bold"><Users size={17} /> Demandes d’abonnement · {requests.length}</h2>
+          <p className="text-muted-foreground text-sm">Ces personnes souhaitent voir ton contenu réservé aux abonnés.</p>
+          <ul className="mt-3 divide-y divide-stone-100">
+            {requests.map((r) => (
+              <li key={r.id} className="flex items-center gap-3 py-3">
+                <Avatar user={r} size={38} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{r.display_name}</p>
+                  <p className="text-muted-foreground text-xs">@{r.username}</p>
+                </div>
+                <Button size="sm" disabled={responding === r.id} onClick={() => answerRequest(r.id, true)}>Accepter</Button>
+                <Button size="sm" variant="outline" disabled={responding === r.id} onClick={() => answerRequest(r.id, false)}>Refuser</Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Stats essentielles (le reste = tableau de bord) */}
       {stats && (
@@ -355,7 +404,7 @@ export function ProfileView({ username }: { username?: string }) {
       {tab === 'oeuvres' ? (
         books.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-10 text-center">
-            <BookOpen size={28} className="mx-auto text-stone-400" />
+            <BookOpen size={28} className="mx-auto text-stone-500" />
             <p className="mt-2 font-semibold text-stone-700">{isSelf ? 'Tu n’as pas encore d’œuvre' : 'Aucune œuvre publique'}</p>
             {isSelf && <p className="text-sm text-stone-500">Crée ton premier livre depuis ta bibliothèque.</p>}
           </div>

@@ -49,7 +49,7 @@ export function SiteHeader() {
               <Link
                 href="/bibliotheque"
                 data-active={isActive('/bibliotheque')}
-                className={cn('nav-underline rounded-lg px-3 py-2 font-medium transition-colors', isActive('/bibliotheque') ? 'text-stone-900 dark:text-stone-100' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-100')}
+                className={cn('nav-underline hidden rounded-lg px-3 py-2 font-medium transition-colors sm:block', isActive('/bibliotheque') ? 'text-stone-900 dark:text-stone-100' : 'text-stone-500 hover:text-stone-900 dark:hover:text-stone-100')}
               >
                 Bibliothèque
               </Link>

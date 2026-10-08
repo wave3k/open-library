@@ -62,9 +62,11 @@ export function MediaChooser({
               {BRAND_GRADIENTS.map((g) => (
                 <button
                   key={g.id}
+                  type="button"
                   onClick={() => onColor(g.id)}
                   title={g.label}
                   aria-label={g.label}
+                  aria-pressed={!hasImage && currentColor === g.id}
                   className={cn(
                     'h-11 rounded-xl border transition hover:scale-105',
                     !hasImage && currentColor === g.id ? 'ring-2 ring-amber-600 ring-offset-2' : 'border-black/10'
