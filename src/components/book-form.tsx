@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { BookCover } from '@/components/book-cover'
+import { Emoji } from '@/components/emoji'
 import { ImageCropper } from '@/components/image-cropper'
 import {
   COVERS,
@@ -299,7 +300,7 @@ export function BookForm({
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   <input value={style.emoji ?? ''} onChange={(e) => set({ emoji: e.target.value })} maxLength={8} placeholder="🙂" className="h-9 w-14 rounded-md border border-stone-200 text-center text-lg" />
                   {EMOJI_CHOICES.map((em) => (
-                    <button key={em} type="button" onClick={() => set({ emoji: em })} className={cn('h-8 w-8 rounded-md text-lg hover:bg-stone-100', style.emoji === em && 'bg-amber-100')}>{em}</button>
+                    <button key={em} type="button" onClick={() => set({ emoji: em })} className={cn('flex h-8 w-8 items-center justify-center rounded-md hover:bg-stone-100', style.emoji === em && 'bg-amber-100')} title={em}><Emoji char={em} size={22} /></button>
                   ))}
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import { COVERS, COVER_FONTS } from '@/lib/plume'
+import { Emoji } from '@/components/emoji'
 
 const SIZES = {
   sm: { w: 76, h: 112, emoji: 22, title: 11, author: 9, pad: 9 },
@@ -108,14 +109,14 @@ export function BookCover({
 
       {layout === 'centered' ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center" style={{ padding: s.pad }}>
-          {emoji && <span style={{ fontSize: s.emoji, lineHeight: 1 }}>{emoji}</span>}
+          {emoji && <Emoji char={emoji} size={s.emoji} />}
           {titleEl(3)}
           <div className="mt-1 h-px w-8" style={{ background: `${textColor}66` }} />
           {authorEl}
         </div>
       ) : layout === 'minimal' ? (
         <div className="absolute inset-0 flex flex-col justify-between" style={{ padding: s.pad }}>
-          <span style={{ fontSize: Math.round(s.emoji * 0.7), color: textColor }}>{emoji}</span>
+          <Emoji char={emoji} size={Math.round(s.emoji * 0.7)} />
           <div>
             {titleEl(3)}
             <span className="mt-1.5 block h-px w-1/2" style={{ background: `${textColor}66` }} />
@@ -123,7 +124,7 @@ export function BookCover({
         </div>
       ) : layout === 'band' ? (
         <div className="absolute inset-0 flex flex-col justify-between" style={{ padding: s.pad }}>
-          <span style={{ fontSize: s.emoji }}>{emoji}</span>
+          <Emoji char={emoji} size={s.emoji} />
           <div className="rounded-lg px-2 py-1.5" style={{ background: 'rgba(0,0,0,.32)', backdropFilter: 'blur(2px)' }}>
             {titleEl(2)}
             <span className="mt-1 block" style={{ fontSize: s.author, color: textColor, opacity: 0.85 }}>{author}</span>
@@ -132,7 +133,7 @@ export function BookCover({
       ) : (
         <div className="absolute inset-0 flex flex-col" style={{ padding: s.pad }}>
           <div className="mx-auto mb-2 h-px w-2/3" style={{ background: `${textColor}44` }} />
-          <span style={{ fontSize: s.emoji, lineHeight: 1.1 }}>{emoji}</span>
+          <Emoji char={emoji} size={s.emoji} />
           <div className="mt-2">{titleEl(4)}</div>
           <div className="mt-auto min-w-0">
             <div className="mb-1.5 h-px w-1/3" style={{ background: `${textColor}44` }} />

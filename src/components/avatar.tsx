@@ -1,4 +1,5 @@
 import { BRAND_GRADIENTS } from '@/lib/plume'
+import { Emoji } from '@/components/emoji'
 import { cn } from '@/lib/utils'
 
 export interface AvatarUser {
@@ -39,7 +40,7 @@ export function Avatar({ user, size = 40 }: { user: AvatarUser; size?: number })
       style={{ width: size, height: size, fontSize: Math.round(size * 0.4), background: gradientFor(user.avatar_color) }}
       aria-hidden="true"
     >
-      {user.avatar_emoji ? <span style={{ fontSize: Math.round(size * 0.5) }}>{user.avatar_emoji}</span> : initials}
+      {user.avatar_emoji ? <Emoji char={user.avatar_emoji} size={Math.round(size * 0.55)} /> : initials}
     </div>
   )
 }

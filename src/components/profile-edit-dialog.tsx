@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar } from '@/components/avatar'
+import { Emoji } from '@/components/emoji'
 import { AuthAPI, BRAND_GRADIENTS, EMOJI_CHOICES, GENRES, ProfileAPI, type User } from '@/lib/plume'
 import { cn } from '@/lib/utils'
 
@@ -136,7 +137,7 @@ export function ProfileEditDialog({
             <div className="flex flex-wrap items-center gap-1.5">
               <input value={emoji} onChange={(e) => setEmoji(e.target.value)} maxLength={8} placeholder="🙂" className="h-9 w-14 rounded-md border border-stone-200 text-center text-lg" />
               {EMOJI_CHOICES.slice(0, 16).map((em) => (
-                <button key={em} type="button" onClick={() => setEmoji(em)} className={cn('h-8 w-8 rounded-md text-lg hover:bg-stone-100', emoji === em && 'bg-amber-100')}>{em}</button>
+                <button key={em} type="button" onClick={() => setEmoji(em)} className={cn('flex h-8 w-8 items-center justify-center rounded-md hover:bg-stone-100', emoji === em && 'bg-amber-100')} title={em}><Emoji char={em} size={22} /></button>
               ))}
             </div>
           </div>
