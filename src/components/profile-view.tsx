@@ -402,6 +402,7 @@ export function ProfileView({ username }: { username?: string }) {
           file={crop.file}
           aspect={crop.kind === 'banner' ? 3 : 1}
           outWidth={crop.kind === 'banner' ? 1600 : 512}
+          shape={crop.kind === 'avatar' ? 'circle' : 'rect'}
           onCancel={() => setCrop(null)}
           onCropped={onCropped}
         />
