@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Loader2, BookOpen, ArrowLeft } from 'lucide-react'
+import { Search, BookOpen, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { BookCover } from '@/components/book-cover'
+import { BookGridSkeleton } from '@/components/skeleton'
 import { PublicAPI, type Book } from '@/lib/plume'
 
 export function SearchView() {
@@ -65,9 +66,7 @@ export function SearchView() {
       </form>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-20 text-stone-400">
-          <Loader2 size={20} className="animate-spin" /> Chargement…
-        </div>
+        <BookGridSkeleton count={8} />
       ) : books.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-12 text-center">
           <BookOpen size={28} className="mx-auto text-stone-400" />
@@ -75,11 +74,11 @@ export function SearchView() {
           <p className="text-muted-foreground text-sm">Essaie un autre titre, auteur ou genre.</p>
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="stagger grid gap-5 sm:grid-cols-3 lg:grid-cols-4">
           {books.map((b) => (
             <article
               key={b.id}
-              className="book3d-lift group bg-card flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 transition-shadow hover:shadow-lg"
+              className="book3d-lift hover-lift group bg-card flex cursor-pointer flex-col gap-3 rounded-2xl border p-4"
               onClick={() => router.push(`/livres/${b.id}`)}
             >
               <div className="flex justify-center pt-1">

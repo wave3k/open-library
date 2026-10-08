@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
 
 function Section({ icon: Icon, title, desc, children }: { icon: typeof Sun; title: string; desc?: string; children: React.ReactNode }) {
   return (
-    <section className="bg-card rounded-2xl border p-6">
+    <section className="bg-card hover-lift rounded-2xl border p-6">
       <div className="flex items-start gap-3">
         <span className="bg-secondary text-secondary-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
           <Icon size={17} />

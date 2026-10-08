@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Plus, BookOpen, Star, Play, Globe, Loader2, Sparkles, Heart, Eye, MessageSquare } from 'lucide-react'
+import { Search, Plus, BookOpen, Star, Play, Globe, Sparkles, Heart, Eye, MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,6 +16,7 @@ import {
 import { BookCover } from '@/components/book-cover'
 import { BookFormDialog } from '@/components/book-form-dialog'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { BookGridSkeleton } from '@/components/skeleton'
 import { usePlume } from '@/components/plume-provider'
 import { BooksAPI, GENRES, bookWords, type Book, type BookInput, type Recommendation } from '@/lib/plume'
 
@@ -53,6 +54,14 @@ export default function BibliothequePage() {
   const [onlyFav, setOnlyFav] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [toDelete, setToDelete] = useState<Book | null>(null)
+
+  // Ouverture automatique du formulaire via /bibliotheque?nouveau=1
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('nouveau') === '1') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowCreate(true)
+    }
+  }, [])
 
   const sourceBooks: Book[] = tab === 'mine' ? mine : tab === 'explore' ? explore : recommended.map((r) => r.book)
 
@@ -169,9 +178,7 @@ export default function BibliothequePage() {
       </div>
 
       {loadingBooks && sourceBooks.length === 0 ? (
-        <div className="flex items-center justify-center gap-2 py-20 text-stone-500">
-          <Loader2 size={20} className="animate-spin" /> Chargement…
-        </div>
+        <BookGridSkeleton count={6} />
       ) : (
         <>
           {tab !== 'for-you' && sourceBooks.length > 0 && list.length === 0 && (
@@ -211,7 +218,7 @@ export default function BibliothequePage() {
             </div>
           )}
 
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="stagger grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {list.map((b) => {
               const isFav = favs.includes(b.id)
               const lastIdx = (b.chapters ?? []).findIndex((c) => c.id === progress[b.id])
@@ -220,7 +227,7 @@ export default function BibliothequePage() {
               return (
                 <article
                   key={b.id}
-                  className="book3d-lift group bg-card flex cursor-pointer gap-4 rounded-2xl border p-4 transition-shadow hover:shadow-lg"
+                  className="book3d-lift hover-lift group bg-card flex cursor-pointer gap-4 rounded-2xl border p-4"
                   onClick={() => router.push(`/livres/${b.id}`)}
                 >
                   <div className="py-1 pl-1">

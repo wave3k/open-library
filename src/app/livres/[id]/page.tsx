@@ -252,7 +252,7 @@ export default function BookDetailPage() {
                 <BookOpen size={16} /> Lire comme un livre
               </Button>
             )}
-            <Button variant={liked ? 'secondary' : 'outline'} onClick={toggleLike} aria-pressed={liked}>
+            <Button key={liked ? 'liked' : 'like'} variant={liked ? 'secondary' : 'outline'} className={liked ? 'animate-pop' : ''} onClick={toggleLike} aria-pressed={liked}>
               <Heart size={15} fill={liked ? 'currentColor' : 'none'} className={liked ? 'text-red-500' : ''} /> {liked ? 'Aimé' : 'J’aime'}
             </Button>
             {isOwner && (

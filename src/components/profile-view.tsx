@@ -12,12 +12,13 @@ import { Avatar } from '@/components/avatar'
 import { BookCover } from '@/components/book-cover'
 import { ProfileEditDialog } from '@/components/profile-edit-dialog'
 import { ImageCropper } from '@/components/image-cropper'
+import { ProfileSkeleton } from '@/components/skeleton'
 import { usePlume } from '@/components/plume-provider'
 import { MediaAPI, ProfileAPI, bookWords, type Book, type ProfileStats, type User } from '@/lib/plume'
 
 function Stat({ icon: Icon, label, value }: { icon: typeof Heart; label: string; value: number }) {
   return (
-    <div className="bg-card rounded-2xl border p-4">
+    <div className="bg-card hover-lift rounded-2xl border p-4">
       <div className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide">
         <Icon size={14} /> {label}
       </div>
@@ -29,7 +30,7 @@ function Stat({ icon: Icon, label, value }: { icon: typeof Heart; label: string;
 function BookRow({ book, onOpen }: { book: Book; onOpen: () => void }) {
   const isDraft = book.chapter_count === 0
   return (
-    <article className="book3d-lift bg-card flex cursor-pointer gap-4 rounded-2xl border p-4 transition-shadow hover:shadow-lg" onClick={onOpen}>
+    <article className="book3d-lift hover-lift bg-card flex cursor-pointer gap-4 rounded-2xl border p-4" onClick={onOpen}>
       <div className="py-1 pl-1">
         <BookCover book={book} title={book.title} author={book.author} genre={book.genre} size="md" />
       </div>
@@ -122,11 +123,7 @@ export function ProfileView({ username }: { username?: string }) {
     )
   }
   if (loading) {
-    return (
-      <div className="flex items-center justify-center gap-2 py-20 text-stone-500">
-        <Loader2 size={20} className="animate-spin" /> Chargement du profil…
-      </div>
-    )
+    return <ProfileSkeleton />
   }
   if (!profile) {
     return (
@@ -211,7 +208,7 @@ export function ProfileView({ username }: { username?: string }) {
                 <Button onClick={() => setEditing(true)}><Pencil size={15} /> Modifier</Button>
               </div>
             ) : (
-              <Button variant={isFollowing ? 'outline' : 'default'} onClick={toggleFollow} disabled={followBusy}>
+              <Button key={isFollowing ? 'following' : 'follow'} variant={isFollowing ? 'outline' : 'default'} className="animate-pop" onClick={toggleFollow} disabled={followBusy}>
                 {followBusy ? <Loader2 size={15} className="animate-spin" /> : null}
                 {isFollowing ? 'Abonné ✓' : 'Suivre'}
               </Button>
@@ -258,7 +255,7 @@ export function ProfileView({ username }: { username?: string }) {
             {isSelf && <p className="text-sm text-stone-500">Crée ton premier livre depuis ta bibliothèque.</p>}
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2">
+          <div className="stagger grid gap-5 sm:grid-cols-2">
             {books.map((b) => <BookRow key={b.id} book={b} onOpen={() => router.push(`/livres/${b.id}`)} />)}
           </div>
         )

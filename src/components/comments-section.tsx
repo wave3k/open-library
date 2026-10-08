@@ -150,7 +150,7 @@ export function CommentsSection({
                         disabled={!user}
                         aria-pressed={c.liked}
                         aria-label={c.liked ? 'Retirer le like' : 'Aimer ce commentaire'}
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold transition ${c.liked ? 'text-red-500' : 'text-stone-400 hover:text-red-400'} disabled:opacity-50`}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold transition ${c.liked ? 'animate-pop text-red-500' : 'text-stone-400 hover:text-red-400'} disabled:opacity-50`}
                       >
                         <Heart size={13} fill={c.liked ? 'currentColor' : 'none'} /> {c.likes}
                       </button>

@@ -109,8 +109,16 @@ export function NotificationsView() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-20 text-stone-500">
-          <Loader2 size={20} className="animate-spin" /> Chargement…
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="bg-card flex items-center gap-3 rounded-2xl border p-4">
+              <div className="ol-skeleton h-10 w-10 rounded-full" />
+              <div className="flex-1 space-y-2">
+                <div className="ol-skeleton h-3 w-2/3 rounded" />
+                <div className="ol-skeleton h-3 w-1/4 rounded" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : items.length === 0 ? (
         <div className="bg-card rounded-2xl border border-dashed p-12 text-center">
@@ -119,12 +127,12 @@ export function NotificationsView() {
           <p className="text-muted-foreground text-sm">Quand quelqu’un aime, commente ou te suit, tu le verras ici.</p>
         </div>
       ) : (
-        <ul className="bg-card divide-y divide-stone-100 overflow-hidden rounded-2xl border">
+        <ul className="bg-card stagger divide-y divide-stone-100 overflow-hidden rounded-2xl border">
           {items.map((n) => (
             <li key={n.id}>
               <button
                 onClick={() => open(n)}
-                className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-stone-50 ${n.read ? '' : 'bg-amber-50/50'}`}
+                className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-all duration-200 hover:translate-x-0.5 hover:bg-stone-50 ${n.read ? '' : 'bg-amber-50/50'}`}
               >
                 <span className="relative shrink-0">
                   {n.actor ? <Avatar user={n.actor} size={40} /> : <span className="flex h-10 w-10 items-center justify-center rounded-full bg-stone-100"><BookOpen size={16} /></span>}

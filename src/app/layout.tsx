@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { PlumeProvider } from '@/components/plume-provider'
 import { ThemeProvider } from '@/components/theme-provider'
 import { SiteHeader } from '@/components/site-header'
+import { ScrollReset } from '@/components/scroll-reset'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.variable} min-h-screen font-sans text-stone-900 antialiased dark:text-stone-100`}>
         <ThemeProvider>
           <PlumeProvider>
+            <ScrollReset />
             <SiteHeader />
             <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
             <Toaster position="bottom-center" richColors={false} />

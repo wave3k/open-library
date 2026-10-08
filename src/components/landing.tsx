@@ -13,7 +13,7 @@ import { PublicAPI, GENRES, type Book } from '@/lib/plume'
 
 function BookCard({ book, onOpen }: { book: Book; onOpen: (b: Book) => void }) {
   return (
-    <article className="book3d-lift group bg-card flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 transition-shadow hover:shadow-lg" onClick={() => onOpen(book)}>
+    <article className="book3d-lift hover-lift group bg-card flex cursor-pointer flex-col gap-3 rounded-2xl border p-4" onClick={() => onOpen(book)}>
       <div className="flex justify-center pt-1">
         <BookCover book={book} title={book.title} author={book.author} genre={book.genre} size="md" />
       </div>
@@ -104,7 +104,7 @@ export function Landing() {
           <div className="mb-6 hidden sm:block">
             <BookCover book={{ cover: 'sky', cover_style: { preset: 'sky', emoji: '🚀' } }} title="Orbital" author="Karim Haddad" size="md" />
           </div>
-          <div>
+          <div className="animate-float">
             <BookCover book={{ cover: 'indigo', cover_style: { preset: 'indigo', emoji: '✨' } }} title="La Cité des Brumes" author="Léa Moreau" size="lg" />
           </div>
           <div className="mb-6 hidden sm:block">
@@ -133,7 +133,7 @@ export function Landing() {
             <p className="text-muted-foreground text-sm">Sois le premier à publier une histoire !</p>
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="stagger grid gap-5 sm:grid-cols-3 lg:grid-cols-4">
             {trending.slice(0, 8).map((b) => <BookCard key={b.id} book={b} onOpen={openBook} />)}
           </div>
         )}

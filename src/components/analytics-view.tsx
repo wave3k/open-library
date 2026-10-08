@@ -14,7 +14,7 @@ import { AnalyticsAPI, type Analytics } from '@/lib/plume'
 
 function Kpi({ icon: Icon, label, value, hint }: { icon: typeof Eye; label: string; value: number; hint?: string }) {
   return (
-    <div className="bg-card rounded-2xl border p-4">
+    <div className="bg-card rounded-2xl border p-4 transition-transform duration-200 hover:-translate-y-0.5">
       <div className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide">
         <Icon size={14} /> {label}
       </div>
@@ -77,13 +77,13 @@ export function AnalyticsView() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi icon={BookOpen} label="Livres" value={summary.published} hint={`${summary.drafts} brouillon(s)`} />
         <Kpi icon={FileText} label="Mots écrits" value={summary.words} hint={`${summary.chapters} chapitre(s)`} />
         <Kpi icon={Eye} label="Lectures" value={summary.views} hint={`${summary.impressions.toLocaleString('fr-FR')} impressions`} />
         <Kpi icon={Heart} label="Likes reçus" value={summary.likesReceived} hint={`${summary.likes} livres · ${summary.commentLikes} commentaires`} />
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi icon={MessageSquare} label="Commentaires reçus" value={summary.comments} />
         <Kpi icon={TrendingUp} label="Taux d’engagement" value={engagement} hint="likes / lectures (%)" />
         <Kpi icon={Layers} label="Chapitres" value={summary.chapters} />

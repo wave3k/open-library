@@ -363,3 +363,130 @@ body {
   pointer-events: none;
   height: 0;
 }
+/* ============================================================
+   Système d'animations & micro-interactions
+   ============================================================ */
+@keyframes ol-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ol-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ol-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ol-slide-right {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ol-slide-left {
+  from { opacity: 0; transform: translateX(-18px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ol-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+@keyframes ol-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes ol-shimmer {
+  100% { transform: translateX(100%); }
+}
+@keyframes ol-bell {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(14deg); }
+  40% { transform: rotate(-12deg); }
+  60% { transform: rotate(8deg); }
+  80% { transform: rotate(-5deg); }
+}
+@keyframes ol-toast-in {
+  from { opacity: 0; transform: translateY(14px) scale(.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Entrée de page (utilisée par app/template.tsx) */
+.page-enter { animation: ol-fade-up 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+/* Reveal simple */
+.animate-fade-up { animation: ol-fade-up 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.animate-fade-in { animation: ol-fade-in 0.45s ease both; }
+.animate-scale-in { animation: ol-scale-in 0.35s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.animate-slide-right { animation: ol-slide-right 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.animate-slide-left { animation: ol-slide-left 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.animate-pop { animation: ol-pop 0.45s ease; }
+.animate-float { animation: ol-float 6s ease-in-out infinite; }
+.animate-bell { animation: ol-bell 0.8s ease; }
+
+/* Apparition en cascade pour grilles/listes */
+.stagger > * { animation: ol-fade-up 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger > *:nth-child(3) { animation-delay: 0.1s; }
+.stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.stagger > *:nth-child(6) { animation-delay: 0.22s; }
+.stagger > *:nth-child(7) { animation-delay: 0.26s; }
+.stagger > *:nth-child(8) { animation-delay: 0.3s; }
+.stagger > *:nth-child(9) { animation-delay: 0.34s; }
+.stagger > *:nth-child(10) { animation-delay: 0.38s; }
+.stagger > *:nth-child(11) { animation-delay: 0.42s; }
+.stagger > *:nth-child(12) { animation-delay: 0.46s; }
+
+/* Squelettes de chargement */
+.ol-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(120, 113, 108, 0.14);
+}
+.ol-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  animation: ol-shimmer 1.4s infinite;
+}
+.dark .ol-skeleton { background: rgba(255, 255, 255, 0.08); }
+.dark .ol-skeleton::after { background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.09), transparent); }
+
+/* Effet de survol "lift" */
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.2, 0.7, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 34px -14px rgba(0, 0, 0, 0.28);
+}
+
+/* Petit soulignement animé pour les liens de nav */
+.nav-underline { position: relative; }
+.nav-underline::after {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.35rem;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.28s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.nav-underline:hover::after,
+.nav-underline[data-active="true"]::after { transform: scaleX(1); }
+
+/* Respect de prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
