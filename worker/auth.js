@@ -56,6 +56,7 @@ export function publicProfile(row, { self = false } = {}) {
     avatar_color: row.avatar_color || 'amber',
     avatar_image: row.avatar_image || '',
     banner_image: row.banner_image || '',
+    banner_color: row.banner_color || 'amber',
     preferences: parseJsonArr(row.preferences),
     onboarded: row.onboarded === 1,
     profile_visibility: row.profile_visibility || 'public',

@@ -65,7 +65,7 @@ export default function ReaderPage() {
     setProgress(0)
     if (book && chapter) {
       markProgress(book.id, chapter.id)
-      BooksAPI.stat(book.id, 'view')
+      BooksAPI.stat(book.id, 'view', chapter.id)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapterId, id])

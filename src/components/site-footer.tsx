@@ -55,7 +55,7 @@ export function SiteFooter() {
               {user ? (
                 <>
                   <li><Link href="/bibliotheque" className="text-muted-foreground transition-colors hover:text-amber-700">Ma bibliothèque</Link></li>
-                  <li><Link href="/bibliotheque?nouveau=1" className="text-muted-foreground transition-colors hover:text-amber-700">Écrire un livre</Link></li>
+                  <li><Link href="/livres/nouveau" className="text-muted-foreground transition-colors hover:text-amber-700">Écrire un livre</Link></li>
                   <li><Link href="/notifications" className="text-muted-foreground transition-colors hover:text-amber-700">Notifications</Link></li>
                   <li><Link href="/parametres" className="text-muted-foreground transition-colors hover:text-amber-700">Paramètres</Link></li>
                 </>

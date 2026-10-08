@@ -1,9 +1,9 @@
 import { COVERS, COVER_FONTS } from '@/lib/plume'
 
 const SIZES = {
-  sm: { w: 76, h: 112, emoji: 22, title: 10, author: 9, pad: 8 },
-  md: { w: 132, h: 196, emoji: 34, title: 15, author: 11, pad: 12 },
-  lg: { w: 180, h: 268, emoji: 46, title: 18, author: 12, pad: 16 },
+  sm: { w: 76, h: 112, emoji: 22, title: 11, author: 9, pad: 9 },
+  md: { w: 132, h: 196, emoji: 34, title: 16, author: 10, pad: 13 },
+  lg: { w: 180, h: 268, emoji: 46, title: 19, author: 11, pad: 17 },
 }
 
 type CoverInput = {
@@ -20,23 +20,20 @@ type CoverInput = {
   } | null
 }
 
-/** Motif décoratif répété, dessiné en CSS pur (sans image). */
+/** Motif décoratif répété (CSS pur). */
 function patternStyle(pattern: string, color: string): React.CSSProperties {
-  const c = color
   switch (pattern) {
     case 'stripes':
-      return { backgroundImage: `repeating-linear-gradient(45deg, ${c}22 0 10px, transparent 10px 20px)` }
+      return { backgroundImage: `repeating-linear-gradient(45deg, ${color}1f 0 12px, transparent 12px 24px)` }
     case 'dots':
-      return { backgroundImage: `radial-gradient(${c}33 1.5px, transparent 1.6px)`, backgroundSize: '12px 12px' }
+      return { backgroundImage: `radial-gradient(${color}30 1.5px, transparent 1.6px)`, backgroundSize: '14px 14px' }
     case 'grid':
       return {
-        backgroundImage: `linear-gradient(${c}22 1px, transparent 1px), linear-gradient(90deg, ${c}22 1px, transparent 1px)`,
-        backgroundSize: '16px 16px',
+        backgroundImage: `linear-gradient(${color}1f 1px, transparent 1px), linear-gradient(90deg, ${color}1f 1px, transparent 1px)`,
+        backgroundSize: '18px 18px',
       }
     case 'waves':
-      return {
-        backgroundImage: `repeating-radial-gradient(circle at 0 100%, transparent 0 8px, ${c}1f 8px 9px)`,
-      }
+      return { backgroundImage: `repeating-radial-gradient(circle at 0 100%, transparent 0 9px, ${color}1c 9px 10px)` }
     default:
       return {}
   }
@@ -56,8 +53,7 @@ export function BookCover({
   size?: keyof typeof SIZES
 }) {
   const style = book?.cover_style ?? {}
-  const presetId = style.preset || book?.cover || 'indigo'
-  const preset = COVERS.find((x) => x.id === presetId) ?? COVERS[0]
+  const preset = COVERS.find((x) => x.id === (style.preset || book?.cover)) ?? COVERS[0]
   const fontDef = COVER_FONTS.find((f) => f.id === style.font) ?? COVER_FONTS[0]
   const s = SIZES[size] ?? SIZES.md
   const emoji = style.emoji || preset.emoji
@@ -65,82 +61,89 @@ export function BookCover({
   const layout = style.layout || 'classic'
   const pattern = style.pattern || 'none'
   const image = style.image || ''
-  const imageMode = style.mode === 'image' && !!image
 
-  const bgClass = image && !imageMode ? '' : `bg-gradient-to-br ${preset.bg}`
-  const bgStyle: React.CSSProperties = image
-    ? { backgroundImage: `linear-gradient(rgba(0,0,0,.2), rgba(0,0,0,.6)), url("${image}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : {}
-
-  // Mode image : l'image remplit la couverture, le titre est posé dessus.
-  if (imageMode) {
+  // Mode image : on n'affiche QUE l'image, rien d'autre.
+  if (style.mode === 'image' && image) {
     return (
       <div className="book3d" style={{ width: s.w, height: s.h }} role="img" aria-label={`Couverture de ${title}`}>
-        <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: 'inherit', ...bgStyle }}>
-          <div className={`absolute inset-x-0 bottom-0 ${fontDef.className}`} style={{ padding: s.pad, background: 'linear-gradient(transparent, rgba(0,0,0,.75))' }}>
-            <p className="font-bold leading-snug text-white" style={{ fontSize: s.title, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{title}</p>
-            <p className="mt-0.5 truncate uppercase tracking-wider text-white/80" style={{ fontSize: s.author }}>{author}</p>
-          </div>
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={image} alt="" className="h-full w-full object-cover" />
         <div className="book3d-sheen" />
       </div>
     )
   }
 
-  const titleEl = (clamp = 5) => (
+  const titleEl = (clamp = 4) => (
     <p
-      className="font-bold leading-snug"
-      style={{ fontSize: s.title, color: textColor, display: '-webkit-box', WebkitLineClamp: clamp, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+      className={fontDef.className}
+      style={{
+        fontSize: s.title,
+        color: textColor,
+        fontWeight: 700,
+        lineHeight: 1.2,
+        letterSpacing: '0.01em',
+        display: '-webkit-box',
+        WebkitLineClamp: clamp,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+      }}
     >
       {title}
     </p>
   )
 
+  const authorEl = (
+    <span
+      className="uppercase"
+      style={{ fontSize: s.author, color: textColor, opacity: 0.82, letterSpacing: '0.14em' }}
+    >
+      {author}
+    </span>
+  )
+
   return (
     <div className="book3d" style={{ width: s.w, height: s.h }} role="img" aria-label={`Couverture de ${title}`}>
-      <div
-        className={`absolute inset-0 flex flex-col overflow-hidden ${bgClass} ${fontDef.className}`}
-        style={{ borderRadius: 'inherit', padding: s.pad, ...bgStyle }}
-      >
-        <div className="pointer-events-none absolute inset-0" style={patternStyle(pattern, '#ffffff')} />
+      <div className="absolute inset-0" style={{ background: preset.css }} />
+      <div className="pointer-events-none absolute inset-0" style={patternStyle(pattern, '#ffffff')} />
 
-        {layout === 'centered' ? (
-          <div className="relative flex h-full flex-col items-center justify-center gap-2 text-center">
-            {emoji && <span style={{ fontSize: s.emoji, lineHeight: 1 }}>{emoji}</span>}
-            {titleEl(4)}
-            <span className="uppercase tracking-widest opacity-80" style={{ fontSize: s.author, color: textColor }}>{author}</span>
+      {layout === 'centered' ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center" style={{ padding: s.pad }}>
+          {emoji && <span style={{ fontSize: s.emoji, lineHeight: 1 }}>{emoji}</span>}
+          {titleEl(3)}
+          <div className="mt-1 h-px w-8" style={{ background: `${textColor}66` }} />
+          {authorEl}
+        </div>
+      ) : layout === 'minimal' ? (
+        <div className="absolute inset-0 flex flex-col justify-between" style={{ padding: s.pad }}>
+          <span style={{ fontSize: Math.round(s.emoji * 0.7), color: textColor }}>{emoji}</span>
+          <div>
+            {titleEl(3)}
+            <span className="mt-1.5 block h-px w-1/2" style={{ background: `${textColor}66` }} />
           </div>
-        ) : layout === 'minimal' ? (
-          <div className="relative flex h-full flex-col justify-between text-white">
-            <span style={{ fontSize: Math.round(s.emoji * 0.7), color: textColor }}>{emoji}</span>
-            <div>
-              {titleEl(4)}
-              <span className="mt-1 block h-px w-1/2" style={{ background: `${textColor}66` }} />
-            </div>
+        </div>
+      ) : layout === 'band' ? (
+        <div className="absolute inset-0 flex flex-col justify-between" style={{ padding: s.pad }}>
+          <span style={{ fontSize: s.emoji }}>{emoji}</span>
+          <div className="rounded-lg px-2 py-1.5" style={{ background: 'rgba(0,0,0,.32)', backdropFilter: 'blur(2px)' }}>
+            {titleEl(2)}
+            <span className="mt-1 block" style={{ fontSize: s.author, color: textColor, opacity: 0.85 }}>{author}</span>
           </div>
-        ) : layout === 'band' ? (
-          <div className="relative flex h-full flex-col">
-            <span className="mb-auto" style={{ fontSize: s.emoji }}>{emoji}</span>
-            <div className="-mx-1 rounded-sm px-1.5 py-1" style={{ background: 'rgba(0,0,0,.35)' }}>
-              {titleEl(3)}
-              <span className="mt-0.5 block truncate uppercase tracking-wider opacity-85" style={{ fontSize: s.author, color: textColor }}>{author}</span>
-            </div>
+        </div>
+      ) : (
+        <div className="absolute inset-0 flex flex-col" style={{ padding: s.pad }}>
+          <div className="mx-auto mb-2 h-px w-2/3" style={{ background: `${textColor}44` }} />
+          <span style={{ fontSize: s.emoji, lineHeight: 1.1 }}>{emoji}</span>
+          <div className="mt-2">{titleEl(4)}</div>
+          <div className="mt-auto min-w-0">
+            <div className="mb-1.5 h-px w-1/3" style={{ background: `${textColor}44` }} />
+            {authorEl}
+            {genre && size !== 'sm' && (
+              <p className="mt-0.5 truncate" style={{ fontSize: s.author - 1, color: textColor, opacity: 0.6 }}>{genre}</p>
+            )}
           </div>
-        ) : (
-          <div className="relative flex h-full flex-col text-white">
-            <div className="mx-auto mb-1 h-px w-2/3" style={{ background: `${textColor}55` }} />
-            <span style={{ fontSize: s.emoji, lineHeight: 1.2 }}>{emoji}</span>
-            <div className="mt-1.5">{titleEl(5)}</div>
-            <div className="mt-auto min-w-0">
-              <div className="mb-1 h-px w-1/3" style={{ background: `${textColor}55` }} />
-              <p className="truncate uppercase tracking-wider opacity-85" style={{ fontSize: s.author, color: textColor }}>{author}</p>
-              {genre && size !== 'sm' && (
-                <p className="mt-0.5 truncate opacity-60" style={{ fontSize: s.author - 1, color: textColor }}>{genre}</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
+
       <div className="book3d-sheen" />
     </div>
   )

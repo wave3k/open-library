@@ -31,8 +31,8 @@ interface PlumeCtx {
   explore: Book[]
   recommended: Recommendation[]
   loadingBooks: boolean
-  tab: 'mine' | 'explore' | 'for-you'
-  setTab: (t: 'mine' | 'explore' | 'for-you') => void
+  tab: 'mine' | 'explore' | 'for-you' | 'lectures'
+  setTab: (t: 'mine' | 'explore' | 'for-you' | 'lectures') => void
   favs: string[]
   progress: Record<string, string>
   unread: number
@@ -65,7 +65,7 @@ export function PlumeProvider({ children }: { children: ReactNode }) {
   const [explore, setExplore] = useState<Book[]>([])
   const [recommended, setRecommended] = useState<Recommendation[]>([])
   const [loadingBooks, setLoadingBooks] = useState(false)
-  const [tab, setTab] = useState<'mine' | 'explore' | 'for-you'>('for-you')
+  const [tab, setTab] = useState<'mine' | 'explore' | 'for-you' | 'lectures'>('for-you')
   const [favs, setFavs] = useState<string[]>([])
   const [progress, setProgress] = useState<Record<string, string>>({})
   const [unread, setUnread] = useState(0)

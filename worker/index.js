@@ -265,12 +265,21 @@ async function profileStats(db, userId) {
     .prepare('SELECT COUNT(*) AS n FROM chapters c JOIN books b ON b.id = c.book_id WHERE b.owner_id = ?')
     .bind(userId)
     .first()
+  const reading = await db
+    .prepare(
+      `SELECT COUNT(DISTINCT cr.book_id) AS books, COALESCE(SUM(ch.word_count),0) AS words
+       FROM chapter_reads cr JOIN chapters ch ON ch.id = cr.chapter_id WHERE cr.user_id = ?`
+    )
+    .bind(userId)
+    .first()
   return {
     books: books?.n ?? 0,
     published: books?.published ?? 0,
     drafts: (books?.n ?? 0) - (books?.published ?? 0),
     chapters: chapters?.n ?? 0,
     words: words?.w ?? 0,
+    booksRead: reading?.books ?? 0,
+    wordsRead: reading?.words ?? 0,
     views: books?.views ?? 0,
     impressions: books?.impressions ?? 0,
     likes: likes?.n ?? 0,
@@ -420,6 +429,10 @@ export default {
           const img = String(body.banner_image)
           sets.push('banner_image = ?')
           vals.push(/^(\/api\/media\/|https?:\/\/)/.test(img) ? img.slice(0, 500) : '')
+        }
+        if (body.banner_color !== undefined) {
+          sets.push('banner_color = ?')
+          vals.push(String(body.banner_color).slice(0, 30))
         }
         if (body.preferences !== undefined) {
           sets.push('preferences = ?')
@@ -707,6 +720,34 @@ export default {
         return json({ ok: true })
       }
 
+      // ---------- MES LECTURES ----------
+      if (req.method === 'GET' && path === '/api/reading') {
+        const res = await db
+          .prepare(
+            `SELECT b.*, u.username AS owner_username, u.display_name AS owner_display_name,
+                    u.avatar_emoji AS owner_avatar_emoji, u.avatar_color AS owner_avatar_color, u.avatar_image AS owner_avatar_image,
+                    r.last_read_at, r.read_count,
+                    (SELECT COUNT(*) FROM chapters c WHERE c.book_id = b.id) AS chapter_count,
+                    (SELECT COUNT(*) FROM chapter_reads cr WHERE cr.book_id = b.id AND cr.user_id = ?) AS chapters_read,
+                    (SELECT COUNT(*) FROM likes l WHERE l.book_id = b.id) AS like_count,
+                    (SELECT COUNT(*) FROM comments cm WHERE cm.book_id = b.id) AS comment_count
+             FROM reads r JOIN books b ON b.id = r.book_id
+             LEFT JOIN users u ON u.id = b.owner_id
+             WHERE r.user_id = ?
+             ORDER BY r.last_read_at DESC`
+          )
+          .bind(me.id, me.id)
+          .all()
+        const books = (res.results || []).map((b) => ({
+          ...publicCard(b),
+          last_read_at: b.last_read_at,
+          read_count: b.read_count || 0,
+          chapters_read: b.chapters_read || 0,
+          finished: (b.chapter_count || 0) > 0 && (b.chapters_read || 0) >= (b.chapter_count || 0),
+        }))
+        return json({ books })
+      }
+
       // ---------- ANALYTICS (propriétaire uniquement) ----------
       if (req.method === 'GET' && path === '/api/analytics') {
         const summary = await profileStats(db, me.id)
@@ -768,7 +809,7 @@ export default {
         const ct = req.headers.get('content-type') || ''
         if (!/^image\/(png|jpe?g|webp|gif)$/.test(ct)) return json({ error: 'Format d’image non supporté (png, jpg, webp, gif).' }, 400)
         const buf = await req.arrayBuffer()
-        if (buf.byteLength > 4 * 1024 * 1024) return json({ error: 'Image trop lourde (4 Mo max).' }, 400)
+        if (buf.byteLength > 8 * 1024 * 1024) return json({ error: 'Image trop lourde (8 Mo max).' }, 400)
         const ext = ct.split('/')[1].replace('jpeg', 'jpg')
         const key = `u/${me.id}/${Date.now()}-${randomHex(4)}.${ext}`
         await env.MEDIA.put(key, buf, { httpMetadata: { contentType: ct } })
@@ -876,15 +917,25 @@ export default {
             const body = (await readJson(req)) || {}
             const type = body.type === 'view' ? 'views' : 'impressions'
             await db.prepare(`UPDATE books SET ${type} = ${type} + 1 WHERE id = ?`).bind(bookId).run()
-            // Historique de lecture par utilisateur (pour les recommandations)
+            // Historique de lecture par utilisateur (pour les recommandations + stats de lecture)
             if (type === 'views') {
+              const now = new Date().toISOString()
               await db
                 .prepare(
                   `INSERT INTO reads (user_id, book_id, read_count, last_read_at) VALUES (?, ?, 1, ?)
                    ON CONFLICT(user_id, book_id) DO UPDATE SET read_count = read_count + 1, last_read_at = excluded.last_read_at`
                 )
-                .bind(me.id, bookId, new Date().toISOString())
+                .bind(me.id, bookId, now)
                 .run()
+              const chapterId = body.chapterId ? String(body.chapterId) : ''
+              if (chapterId) {
+                await db
+                  .prepare(
+                    `INSERT OR IGNORE INTO chapter_reads (user_id, chapter_id, book_id, read_at) VALUES (?, ?, ?, ?)`
+                  )
+                  .bind(me.id, chapterId, bookId, now)
+                  .run()
+              }
             }
           }
           return json({ ok: true })

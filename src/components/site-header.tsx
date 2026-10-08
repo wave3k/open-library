@@ -53,7 +53,7 @@ export function SiteHeader() {
               >
                 Bibliothèque
               </Link>
-              <Button size="sm" onClick={() => router.push('/bibliotheque?nouveau=1')}>
+              <Button size="sm" onClick={() => router.push('/livres/nouveau')}>
                 <Plus size={16} /> Créer
               </Button>
               <Link href="/profil" className="group flex items-center gap-2 rounded-full py-1 pl-1 pr-1 transition-colors hover:bg-stone-100 md:pr-3" aria-label="Mon profil">

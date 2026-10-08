@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar } from '@/components/avatar'
-import { AuthAPI, COVERS, EMOJI_CHOICES, GENRES, ProfileAPI, type User } from '@/lib/plume'
+import { AuthAPI, BRAND_GRADIENTS, EMOJI_CHOICES, GENRES, ProfileAPI, type User } from '@/lib/plume'
 import { cn } from '@/lib/utils'
 
 const USERNAME_RE = /^[a-z0-9_]{3,24}$/
@@ -123,9 +123,10 @@ export function ProfileEditDialog({
           <div>
             <Label>Couleur d’avatar</Label>
             <div className="mt-1.5 flex flex-wrap gap-2">
-              {COVERS.map((c) => (
-                <button key={c.id} type="button" onClick={() => setColor(c.id)} aria-label={c.id}
-                  className={cn('h-8 w-8 rounded-full bg-gradient-to-br', c.bg, color === c.id && 'ring-2 ring-amber-600 ring-offset-2')} />
+              {BRAND_GRADIENTS.map((c) => (
+                <button key={c.id} type="button" onClick={() => setColor(c.id)} aria-label={c.label}
+                  className={cn('h-8 w-8 rounded-full border border-black/10', color === c.id && 'ring-2 ring-amber-600 ring-offset-2')}
+                  style={{ background: c.css }} />
               ))}
             </div>
           </div>

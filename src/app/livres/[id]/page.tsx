@@ -147,7 +147,7 @@ export default function BookDetailPage() {
 
   return (
     <div className="space-y-5">
-      <button onClick={() => router.back()} className="flex items-center gap-1.5 text-sm font-medium text-stone-500 hover:text-stone-800">
+      <button onClick={() => { if (typeof window !== 'undefined' && window.history.length > 1) router.back(); else router.push(user ? '/bibliotheque' : '/recherche') }} className="flex items-center gap-1.5 text-sm font-medium text-stone-500 hover:text-stone-800">
         <ArrowLeft size={16} /> Retour
       </button>
 

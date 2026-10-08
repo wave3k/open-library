@@ -4,11 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   BookOpen, Heart, FileText, Pencil, CalendarDays, Loader2, Camera, ImagePlus,
-  BarChart3, MessageSquare, Eye, TrendingUp, Lock, Users,
+  BarChart3, MessageSquare, Eye, TrendingUp, Lock, Users, BookMarked,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Avatar } from '@/components/avatar'
+import { Avatar, gradientFor } from '@/components/avatar'
+import { MediaChooser } from '@/components/media-chooser'
 import { BookCover } from '@/components/book-cover'
 import { ProfileEditDialog } from '@/components/profile-edit-dialog'
 import { ImageCropper } from '@/components/image-cropper'
@@ -71,6 +72,7 @@ export function ProfileView({ username }: { username?: string }) {
   const [editing, setEditing] = useState(false)
   const [tab, setTab] = useState<'oeuvres' | 'a-propos'>('oeuvres')
   const [crop, setCrop] = useState<{ file: File; kind: 'avatar' | 'banner' } | null>(null)
+  const [chooser, setChooser] = useState<'avatar' | 'banner' | null>(null)
   const avatarInput = useRef<HTMLInputElement>(null)
   const bannerInput = useRef<HTMLInputElement>(null)
 
@@ -227,6 +229,32 @@ export function ProfileView({ username }: { username?: string }) {
     }
   }
 
+  const applyColor = async (colorId: string) => {
+    const kind = chooser
+    setChooser(null)
+    if (!kind) return
+    try {
+      const patch = kind === 'banner' ? { banner_color: colorId, banner_image: '' } : { avatar_color: colorId, avatar_image: '' }
+      await ProfileAPI.update(patch)
+      await refreshStats()
+      toast.success(kind === 'banner' ? 'Bannière mise à jour' : 'Couleur mise à jour')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Modification impossible.')
+    }
+  }
+
+  const removeImage = async () => {
+    const kind = chooser
+    setChooser(null)
+    if (!kind) return
+    try {
+      await ProfileAPI.update(kind === 'banner' ? { banner_image: '' } : { avatar_image: '' })
+      await refreshStats()
+    } catch {
+      // ignore
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* En-tête avec bannière */}
@@ -236,11 +264,11 @@ export function ProfileView({ username }: { username?: string }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={profile.banner_image} alt="" className="h-full w-full object-cover" />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-amber-400 via-amber-500 to-orange-600" />
+            <div className="h-full w-full" style={{ background: gradientFor(profile.banner_color) }} />
           )}
           {isSelf && (
             <button
-              onClick={() => bannerInput.current?.click()}
+              onClick={() => setChooser('banner')}
               className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 text-sm font-semibold text-white opacity-0 transition group-hover:opacity-100"
             >
               <ImagePlus size={18} /> Changer la bannière
@@ -256,7 +284,7 @@ export function ProfileView({ username }: { username?: string }) {
               </div>
               {isSelf && (
                 <button
-                  onClick={() => avatarInput.current?.click()}
+                  onClick={() => setChooser('avatar')}
                   className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 transition group-hover:opacity-100"
                   aria-label="Changer la photo de profil"
                 >
@@ -307,10 +335,11 @@ export function ProfileView({ username }: { username?: string }) {
 
       {/* Stats essentielles (le reste = tableau de bord) */}
       {stats && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="stagger grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Stat icon={BookOpen} label={isSelf ? 'Livres publiés' : 'Livres'} value={isSelf ? stats.published : stats.books} />
           <Stat icon={Heart} label="Likes reçus" value={stats.likesReceived} />
-          <Stat icon={FileText} label="Mots écrits" value={stats.words} />
+          <Stat icon={FileText} label="Mots lus" value={stats.wordsRead} />
+          <Stat icon={BookMarked} label="Livres lus" value={stats.booksRead} />
         </div>
       )}
 
@@ -350,6 +379,19 @@ export function ProfileView({ username }: { username?: string }) {
         </div>
       )}
 
+      {isSelf && (
+        <MediaChooser
+          open={!!chooser}
+          kind={chooser ?? 'avatar'}
+          currentColor={chooser === 'banner' ? profile.banner_color : profile.avatar_color}
+          hasImage={!!(chooser === 'banner' ? profile.banner_image : profile.avatar_image)}
+          onUpload={() => { const k = chooser; setChooser(null); if (k === 'banner') bannerInput.current?.click(); else avatarInput.current?.click() }}
+          onColor={applyColor}
+          onRemoveImage={removeImage}
+          onClose={() => setChooser(null)}
+        />
+      )}
+
       <input ref={avatarInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) setCrop({ file: f, kind: 'avatar' }); e.target.value = '' }} />
       <input ref={bannerInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden"
@@ -359,7 +401,7 @@ export function ProfileView({ username }: { username?: string }) {
         <ImageCropper
           file={crop.file}
           aspect={crop.kind === 'banner' ? 3 : 1}
-          outWidth={crop.kind === 'banner' ? 1200 : 512}
+          outWidth={crop.kind === 'banner' ? 1600 : 512}
           onCancel={() => setCrop(null)}
           onCropped={onCropped}
         />
