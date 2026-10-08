@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { PlumeProvider } from '@/components/plume-provider'
@@ -32,6 +34,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
             <SiteFooter />
             <Toaster position="bottom-center" richColors={false} />
+            <Analytics />
+            <SpeedInsights />
           </PlumeProvider>
         </ThemeProvider>
       </body>
