@@ -5,7 +5,7 @@ import { BOOK_SELECT, cleanBookInput, loadBook, serializeBookList, bookCounts, n
 import { LIMITS, loadAccessibleBook, canDeleteComment, nextChapterPosition } from '../lib/domain.js'
 import { sanitizeHtml, wordCountOf } from '../sanitize.js'
 
-export async function bookRoutes({ req, db, url, path, env, me }) {
+export async function bookRoutes({ req, db, url, path, me }) {
   const method = req.method
 
   if (method === 'GET' && path === '/api/books') {

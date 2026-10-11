@@ -227,14 +227,14 @@ export async function recommend(db, user, limit = 12) {
   const picked = diversify(ranked, limit)
 
   return picked.map((c) => ({
-    book: serializeCandidate(c.book, c.parts),
+    book: serializeCandidate(c.book),
     reason: reasonFor(c.book, c.parts, aff, ctx),
     score: Math.round(c.score * 1000) / 1000,
   }))
 }
 
 /** Transforme une ligne candidate en objet "book" attendu par le front. */
-function serializeCandidate(b, parts) {
+function serializeCandidate(b) {
   return {
     id: b.id,
     owner_id: b.owner_id,

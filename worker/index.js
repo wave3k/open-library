@@ -10,7 +10,7 @@ import { publicRoutes } from './routes/public.js'
 import { profileRoutes } from './routes/profiles.js'
 import { bookRoutes } from './routes/books.js'
 
-export default {
+const worker = {
   async fetch(req, env) {
     const origin = req.headers.get('Origin') || ''
     let res
@@ -31,6 +31,8 @@ export default {
     await purgeExpired(env.DB)
   },
 }
+
+export default worker
 
 async function route(req, env) {
   const url = new URL(req.url)
