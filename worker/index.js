@@ -3,6 +3,7 @@
 import { publicProfile } from './auth.js'
 import { json, CORS_HEADERS, isAllowedOrigin } from './lib/http.js'
 import { currentUser } from './lib/session.js'
+import { purgeExpired } from './lib/maintenance.js'
 import { mediaRoutes } from './routes/media.js'
 import { authRoutes } from './routes/auth.js'
 import { publicRoutes } from './routes/public.js'
@@ -27,8 +28,7 @@ export default {
 
   // Purge périodique (cron) : sessions expirées + rate limits anciens.
   async scheduled(_event, env) {
-    await env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(Date.now()).run()
-    await env.DB.prepare('DELETE FROM rate_limits WHERE window_start < ?').bind(Date.now() - 86400000).run()
+    await purgeExpired(env.DB)
   },
 }
 

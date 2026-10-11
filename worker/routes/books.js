@@ -1,7 +1,8 @@
 // Livres : liste, création, import, et routes imbriquées (chapitres, likes, commentaires, stats).
 // Ces routes exigent un utilisateur authentifié (le routeur renvoie 401 sinon).
-import { json, readJson } from '../lib/http.js'
+import { json, readJson, rateLimited } from '../lib/http.js'
 import { BOOK_SELECT, cleanBookInput, loadBook, serializeBookList, bookCounts, notify } from '../lib/models.js'
+import { LIMITS, loadAccessibleBook, canDeleteComment, nextChapterPosition } from '../lib/domain.js'
 import { sanitizeHtml, wordCountOf } from '../sanitize.js'
 
 export async function bookRoutes({ req, db, url, path, env, me }) {
@@ -93,10 +94,8 @@ export async function bookRoutes({ req, db, url, path, env, me }) {
 
   // Les interactions exigent un livre existant et accessible (public, ou le mien).
   if (rest === '/like' || rest === '/stat' || rest === '/comments' || rest.startsWith('/comments/')) {
-    const access = await db.prepare('SELECT owner_id, is_public FROM books WHERE id = ?').bind(bookId).first()
-    if (!access || (access.is_public !== 1 && access.owner_id !== me.id)) {
-      return json({ error: 'Livre introuvable.' }, 404)
-    }
+    const access = await loadAccessibleBook(db, bookId, me.id)
+    if (!access || !access.allowed) return json({ error: 'Livre introuvable.' }, 404)
   }
 
   if (rest === '/like') {
@@ -119,6 +118,10 @@ export async function bookRoutes({ req, db, url, path, env, me }) {
 
   if (rest === '/stat') {
     if (method === 'POST') {
+      // Anti-gonflement : plafonne les événements de stat par utilisateur et par livre.
+      if (await rateLimited(db, `stat:${me.id}:${bookId}`, LIMITS.RATE_STAT.limit, LIMITS.RATE_STAT.windowSec)) {
+        return json({ ok: false }, 429)
+      }
       const body = (await readJson(req)) || {}
       const type = body.type === 'view' ? 'views' : 'impressions'
       await db.prepare(`UPDATE books SET ${type} = ${type} + 1 WHERE id = ?`).bind(bookId).run()
@@ -214,10 +217,9 @@ export async function bookRoutes({ req, db, url, path, env, me }) {
   const commMatch = rest.match(/^\/comments\/([^/]+)$/)
   if (commMatch && method === 'DELETE') {
     const cid = commMatch[1]
-    const row = await db.prepare('SELECT user_id FROM comments WHERE id = ? AND book_id = ?').bind(cid, bookId).first()
-    if (!row) return json({ error: 'Commentaire introuvable.' }, 404)
-    const book = await db.prepare('SELECT owner_id FROM books WHERE id = ?').bind(bookId).first()
-    if (row.user_id !== me.id && book?.owner_id !== me.id) return json({ error: 'Non autorisé.' }, 403)
+    const { found, allowed } = await canDeleteComment(db, cid, bookId, me.id)
+    if (!found) return json({ error: 'Commentaire introuvable.' }, 404)
+    if (!allowed) return json({ error: 'Non autorisé.' }, 403)
     await db.prepare('DELETE FROM comments WHERE id = ?').bind(cid).run()
     return json({ ok: true })
   }
@@ -257,8 +259,7 @@ export async function bookRoutes({ req, db, url, path, env, me }) {
     if (wordCountOf(content) < 1) {
       return json({ error: 'Écris au moins un mot avant d’enregistrer.' }, 400)
     }
-    const max = await db.prepare('SELECT MAX(position) AS m FROM chapters WHERE book_id = ?').bind(bookId).first()
-    const pos = (max?.m ?? -1) + 1
+    const pos = await nextChapterPosition(db, bookId)
     const now = new Date().toISOString()
     await db
       .prepare('INSERT INTO chapters (id, book_id, title, content, position, updated_at, word_count) VALUES (?, ?, ?, ?, ?, ?, ?)')

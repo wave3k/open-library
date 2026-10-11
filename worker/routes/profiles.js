@@ -2,6 +2,7 @@
 import { publicProfile } from '../auth.js'
 import { json, readJson } from '../lib/http.js'
 import { BOOK_SELECT, serializeBookList, publicCard, followCounts, profileStats, notify } from '../lib/models.js'
+import { canViewProfileContent } from '../lib/domain.js'
 import { recommend } from '../recommend.js'
 
 export async function profileRoutes({ req, db, url, path, meRow, me }) {
@@ -21,8 +22,7 @@ export async function profileRoutes({ req, db, url, path, meRow, me }) {
     const followStatus = followRow ? followRow.status : null
     const isFollowing = followStatus === 'accepted'
 
-    let allowed = !!isSelf || visibility === 'public'
-    if (!allowed && visibility === 'followers' && me) allowed = isFollowing
+    const allowed = canViewProfileContent({ isSelf, visibility, isFollowing })
 
     if (!allowed) {
       return json({
@@ -79,11 +79,14 @@ export async function profileRoutes({ req, db, url, path, meRow, me }) {
     if (method === 'POST') {
       const needsApproval = (target.profile_visibility || 'public') === 'followers'
       const status = needsApproval ? 'pending' : 'accepted'
-      await db
+      const ins = await db
         .prepare('INSERT OR IGNORE INTO follows (follower_id, following_id, created_at, status) VALUES (?, ?, ?, ?)')
         .bind(me.id, target.id, new Date().toISOString(), status)
         .run()
-      await notify(db, { userId: target.id, type: needsApproval ? 'follow_request' : 'follow', actorId: me.id })
+      // Ne notifier qu'à la création réelle de l'abonnement (évite les doublons).
+      if (ins.meta.changes) {
+        await notify(db, { userId: target.id, type: needsApproval ? 'follow_request' : 'follow', actorId: me.id })
+      }
     } else if (method === 'DELETE') {
       await db.prepare('DELETE FROM follows WHERE follower_id = ? AND following_id = ?').bind(me.id, target.id).run()
     }
@@ -106,9 +109,17 @@ export async function profileRoutes({ req, db, url, path, meRow, me }) {
     if (!row) return json({ error: 'Demande introuvable.' }, 404)
     if (accept) {
       await db.prepare("UPDATE follows SET status = 'accepted' WHERE follower_id = ? AND following_id = ?").bind(followerId, me.id).run()
+      await db
+        .prepare("UPDATE notifications SET read = 1 WHERE user_id = ? AND type = 'follow_request' AND actor_id = ? AND read = 0")
+        .bind(me.id, followerId)
+        .run()
       await notify(db, { userId: followerId, type: 'follow_accepted', actorId: me.id })
     } else {
       await db.prepare('DELETE FROM follows WHERE follower_id = ? AND following_id = ?').bind(followerId, me.id).run()
+      await db
+        .prepare("DELETE FROM notifications WHERE user_id = ? AND type = 'follow_request' AND actor_id = ?")
+        .bind(me.id, followerId)
+        .run()
     }
     return json({ ok: true })
   }

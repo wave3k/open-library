@@ -3,14 +3,15 @@ import { hashPassword, verifyPassword, publicProfile, randomHex, sha256Hex, slug
 import { json, readJson, clientIp, rateLimited } from '../lib/http.js'
 import { issueSession } from '../lib/session.js'
 import { detectImage } from '../lib/util.js'
-import { EMAIL_RE, USERNAME_RE, GENRES, COVERS, REFERRALS, cleanTags, profileStats } from '../lib/models.js'
+import { EMAIL_RE, USERNAME_RE, GENRES, BRAND_COLORS, REFERRALS, cleanTags, profileStats } from '../lib/models.js'
+import { LIMITS } from '../lib/domain.js'
 
 export async function authRoutes(ctx) {
   const { req, env, db, url, path, me } = ctx
   const method = req.method
 
   if (method === 'POST' && path === '/api/auth/signup') {
-    if (await rateLimited(db, `signup:${clientIp(req)}`, 10, 3600)) {
+    if (await rateLimited(db, `signup:${clientIp(req)}`, LIMITS.RATE_SIGNUP.limit, LIMITS.RATE_SIGNUP.windowSec)) {
       return json({ error: 'Trop de tentatives. Réessaie dans une heure.' }, 429)
     }
     const body = (await readJson(req)) || {}
@@ -38,19 +39,28 @@ export async function authRoutes(ctx) {
     const { salt, hash } = await hashPassword(password)
     const id = crypto.randomUUID()
     const now = new Date().toISOString()
-    await db
-      .prepare(
-        `INSERT INTO users (id, name, email, password_hash, salt, created_at, username, display_name, referral_source, preferences)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-      .bind(id, name, email, hash, salt, now, username, name, referral, JSON.stringify(preferences))
-      .run()
+    try {
+      await db
+        .prepare(
+          `INSERT INTO users (id, name, email, password_hash, salt, created_at, username, display_name, referral_source, preferences)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(id, name, email, hash, salt, now, username, name, referral, JSON.stringify(preferences))
+        .run()
+    } catch (e) {
+      // Course sur l'unicité de l'e-mail entre le SELECT et l'INSERT.
+      if (String(e?.message || e).includes('UNIQUE')) {
+        return json({ error: 'Un compte existe déjà avec cet e-mail.' }, 409)
+      }
+      throw e
+    }
     const token = await issueSession(db, id)
-    return json({ user: { id, username, display_name: name, name, email, created_at: now }, token }, 201)
+    const row = await db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first()
+    return json({ user: publicProfile(row, { self: true }), token }, 201)
   }
 
   if (method === 'POST' && path === '/api/auth/login') {
-    if (await rateLimited(db, `login:${clientIp(req)}`, 20, 900)) {
+    if (await rateLimited(db, `login:${clientIp(req)}`, LIMITS.RATE_LOGIN.limit, LIMITS.RATE_LOGIN.windowSec)) {
       return json({ error: 'Trop de tentatives. Réessaie dans quelques minutes.' }, 429)
     }
     const body = (await readJson(req)) || {}
@@ -102,19 +112,22 @@ export async function authRoutes(ctx) {
     if (body.avatar_emoji !== undefined) { sets.push('avatar_emoji = ?'); vals.push(String(body.avatar_emoji).slice(0, 8)) }
     if (body.avatar_color !== undefined) {
       sets.push('avatar_color = ?')
-      vals.push(COVERS.includes(String(body.avatar_color)) ? String(body.avatar_color) : 'amber')
+      vals.push(BRAND_COLORS.includes(String(body.avatar_color)) ? String(body.avatar_color) : 'amber')
     }
     if (body.avatar_image !== undefined) {
       const img = String(body.avatar_image)
       sets.push('avatar_image = ?')
-      vals.push(/^(\/api\/media\/|https?:\/\/)/.test(img) ? img.slice(0, 500) : '')
+      vals.push(/^\/api\/media\//.test(img) ? img.slice(0, 500) : '')
     }
     if (body.banner_image !== undefined) {
       const img = String(body.banner_image)
       sets.push('banner_image = ?')
-      vals.push(/^(\/api\/media\/|https?:\/\/)/.test(img) ? img.slice(0, 500) : '')
+      vals.push(/^\/api\/media\//.test(img) ? img.slice(0, 500) : '')
     }
-    if (body.banner_color !== undefined) { sets.push('banner_color = ?'); vals.push(String(body.banner_color).slice(0, 30)) }
+    if (body.banner_color !== undefined) {
+      sets.push('banner_color = ?')
+      vals.push(BRAND_COLORS.includes(String(body.banner_color)) ? String(body.banner_color) : 'amber')
+    }
     if (body.preferences !== undefined) {
       sets.push('preferences = ?')
       vals.push(JSON.stringify(cleanTags(body.preferences).filter((g) => GENRES.includes(g)).slice(0, 7)))
@@ -147,7 +160,7 @@ export async function authRoutes(ctx) {
 
   if (method === 'POST' && path === '/api/profile/password') {
     if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
-    if (await rateLimited(db, `pwd:${me.id}`, 10, 900)) {
+    if (await rateLimited(db, `pwd:${me.id}`, LIMITS.RATE_PASSWORD.limit, LIMITS.RATE_PASSWORD.windowSec)) {
       return json({ error: 'Trop de tentatives. Réessaie plus tard.' }, 429)
     }
     const body = (await readJson(req)) || {}
@@ -176,13 +189,27 @@ export async function authRoutes(ctx) {
       return json({ error: 'Mot de passe incorrect.' }, 401)
     }
     await db.prepare('DELETE FROM users WHERE id = ?').bind(me.id).run()
+    // Purge best-effort des médias R2 de l'utilisateur (avatars, bannières, couvertures).
+    if (env.MEDIA) {
+      try {
+        let cursor
+        do {
+          const listed = await env.MEDIA.list({ prefix: `u/${me.id}/`, cursor })
+          const keys = (listed.objects || []).map((o) => o.key)
+          if (keys.length) await env.MEDIA.delete(keys)
+          cursor = listed.truncated ? listed.cursor : undefined
+        } while (cursor)
+      } catch (e) {
+        console.error('Purge R2 échouée pour', me.id, e)
+      }
+    }
     return json({ ok: true })
   }
 
   if (method === 'POST' && path === '/api/upload') {
     if (!me) return json({ error: 'Connecte-toi pour continuer.' }, 401)
     if (!env.MEDIA) return json({ error: 'Stockage média indisponible.' }, 503)
-    const MAX = 8 * 1024 * 1024
+    const MAX = LIMITS.MAX_UPLOAD_BYTES
     const declared = Number(req.headers.get('content-length') || 0)
     if (declared && declared > MAX) return json({ error: 'Image trop lourde (8 Mo max).' }, 413)
     const buf = await req.arrayBuffer()
