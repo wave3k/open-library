@@ -41,21 +41,37 @@ export async function readJson(req) {
 }
 
 export function clientIp(req) {
-  return req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || 'unknown'
+  // Ne JAMAIS lire le premier maillon de X-Forwarded-For : il est écrit par le
+  // client et donc falsifiable (contournement du rate limiting). Le proxy de
+  // confiance (Vercel/Cloudflare) ajoute l'IP réelle en DERNIER ; on lit donc le
+  // dernier maillon. À défaut, on retombe sur cf-connecting-ip, posé par
+  // Cloudflare et non contrôlable par le client.
+  const xff = req.headers.get('x-forwarded-for')
+  if (xff) {
+    const parts = xff.split(',').map((s) => s.trim()).filter(Boolean)
+    if (parts.length) return parts[parts.length - 1]
+  }
+  return req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || 'unknown'
 }
 
-/** Limite de débit simple (par clé) basée sur D1. Renvoie true si bloqué. */
+/**
+ * Limite de débit simple (par clé) basée sur D1. Renvoie true si bloqué.
+ * L'incrément et la décision tiennent dans UNE seule instruction atomique
+ * (UPSERT ... RETURNING) : fini le TOCTOU lecture-puis-écriture qui laissait
+ * passer des rafales concurrentes.
+ */
 export async function rateLimited(db, key, limit, windowSec) {
   const now = Date.now()
-  const row = await db.prepare('SELECT count, window_start FROM rate_limits WHERE key = ?').bind(key).first()
-  if (row && now - row.window_start < windowSec * 1000) {
-    if (row.count >= limit) return true
-    await db.prepare('UPDATE rate_limits SET count = count + 1 WHERE key = ?').bind(key).run()
-    return false
-  }
-  await db
-    .prepare('INSERT INTO rate_limits (key, count, window_start) VALUES (?, 1, ?) ON CONFLICT(key) DO UPDATE SET count = 1, window_start = excluded.window_start')
-    .bind(key, now)
-    .run()
-  return false
+  const windowMs = windowSec * 1000
+  const row = await db
+    .prepare(
+      `INSERT INTO rate_limits (key, count, window_start) VALUES (?, 1, ?)
+       ON CONFLICT(key) DO UPDATE SET
+         count = CASE WHEN ? - window_start < ? THEN count + 1 ELSE 1 END,
+         window_start = CASE WHEN ? - window_start < ? THEN window_start ELSE ? END
+       RETURNING count`
+    )
+    .bind(key, now, now, windowMs, now, windowMs, now)
+    .first()
+  return (row?.count ?? 0) > limit
 }
