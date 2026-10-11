@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
@@ -29,11 +30,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.variable} flex min-h-screen flex-col font-sans text-stone-900 antialiased dark:text-stone-100`}>
         <ThemeProvider>
           <PlumeProvider>
-            <ScrollReset />
+            <Suspense fallback={null}>
+              <ScrollReset />
+            </Suspense>
             <a href="#main" className="skip-link">Aller au contenu</a>
-            <SiteHeader />
-            <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
-            <SiteFooter />
+            <Suspense fallback={<div className="h-16 border-b" />}>
+              <SiteHeader />
+            </Suspense>
+            <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
+              <Suspense fallback={null}>{children}</Suspense>
+            </main>
+            <Suspense fallback={null}>
+              <SiteFooter />
+            </Suspense>
             <Toaster position="bottom-center" richColors={false} />
             <Analytics />
             <SpeedInsights />

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LibraryBig, Heart } from 'lucide-react'
@@ -10,10 +11,15 @@ const BARE_ROUTES = ['/connexion', '/inscription', '/onboarding']
 export function SiteFooter() {
   const pathname = usePathname()
   const { user } = usePlume()
+  // L'année n'est lue que côté client : `new Date()` est interdit au prerender.
+  const [year, setYear] = useState<number | null>(null)
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setYear(new Date().getFullYear())
+  }, [])
 
   if (BARE_ROUTES.includes(pathname)) return null
-
-  const year = new Date().getFullYear()
 
   return (
     <footer className="mt-16 border-t bg-card/50">
@@ -70,7 +76,7 @@ export function SiteFooter() {
         </div>
 
         <div className="text-muted-foreground mt-10 flex flex-col items-center justify-between gap-3 border-t pt-6 text-xs sm:flex-row">
-          <p>© {year} Open Library — Publier et lire des livres gratuitement.</p>
+          <p>©{year ? ` ${year}` : ''} Open Library — Publier et lire des livres gratuitement.</p>
           <p>
             Conçu &amp; développé par
             <span className="brand-hover ml-1 font-semibold text-stone-700 dark:text-stone-200">HQStudio</span>
