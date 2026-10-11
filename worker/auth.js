@@ -1,4 +1,6 @@
 // Helpers crypto (WebCrypto, compatible Workers + Node 19+).
+import { parseArr } from './lib/util.js'
+
 const enc = new TextEncoder()
 
 export function randomHex(bytes = 32) {
@@ -34,15 +36,6 @@ export async function verifyPassword(password, salt, expected) {
   return hash === expected
 }
 
-function parseJsonArr(v, fallback = []) {
-  try {
-    const a = JSON.parse(v ?? '[]')
-    return Array.isArray(a) ? a : fallback
-  } catch {
-    return fallback
-  }
-}
-
 /** Profil public d'un utilisateur (jamais l'e-mail pour un tiers). */
 export function publicProfile(row, { self = false } = {}) {
   if (!row) return null
@@ -57,7 +50,7 @@ export function publicProfile(row, { self = false } = {}) {
     avatar_image: row.avatar_image || '',
     banner_image: row.banner_image || '',
     banner_color: row.banner_color || 'amber',
-    preferences: parseJsonArr(row.preferences),
+    preferences: parseArr(row.preferences),
     onboarded: row.onboarded === 1,
     profile_visibility: row.profile_visibility || 'public',
     created_at: row.created_at,

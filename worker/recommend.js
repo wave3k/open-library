@@ -3,9 +3,10 @@
 // engagement) + popularité (vues) + fraîcheur + diversité, avec un peu
 // d'exploration aléatoire. Chaque reco porte une "raison" lisible.
 
+import { parseArr, parseObj } from './lib/util.js'
+
 const W = {
   genrePref: 3.0,
-  genreHistory: 2.2,
   tags: 2.4,
   author: 1.6,
   likes: 1.1,
@@ -19,24 +20,6 @@ const W = {
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x))
 const log1p = (x) => Math.log(1 + Math.max(0, x))
-
-function parseArr(v, fallback = []) {
-  try {
-    const a = JSON.parse(v ?? '[]')
-    return Array.isArray(a) ? a : fallback
-  } catch {
-    return fallback
-  }
-}
-
-function parseObj(v, fallback = {}) {
-  try {
-    const o = JSON.parse(v ?? '{}')
-    return o && typeof o === 'object' && !Array.isArray(o) ? o : fallback
-  } catch {
-    return fallback
-  }
-}
 
 function daysSince(iso) {
   const t = Date.parse(iso || '')
