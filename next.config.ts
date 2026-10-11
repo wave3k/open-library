@@ -29,11 +29,13 @@ const nextConfig: NextConfig = {
   },
   // En-têtes de sécurité (défense en profondeur).
   async headers() {
+    // 'unsafe-eval' n'est nécessaire qu'au runtime de dev (HMR) : on le retire en prod.
+    const isDev = process.env.NODE_ENV !== "production";
     const csp = [
       "default-src 'self'",
       "img-src 'self' data: blob: https:",
       "style-src 'self' 'unsafe-inline'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      isDev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self' 'unsafe-inline'",
       "connect-src 'self' https:",
       "font-src 'self' data:",
       "frame-ancestors 'none'",

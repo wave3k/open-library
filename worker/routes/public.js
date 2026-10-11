@@ -62,7 +62,12 @@ export async function publicRoutes({ req, db, url, path }) {
           )
           .bind(ftsQuery)
           .all()
-      } catch {
+      } catch (e) {
+        // Repli LIKE si FTS5 indisponible (migration v10 non appliquée) ; on
+        // journalise les autres erreurs pour ne pas les masquer.
+        if (!String(e?.message || e).includes('no such table')) {
+          console.error('Recherche FTS échouée, repli sur LIKE :', e)
+        }
         res = await db
           .prepare(
             `SELECT b.*, u.username AS owner_username, u.display_name AS owner_display_name,

@@ -11,7 +11,8 @@ export const GENRES = [
   'Histoire', 'Biographie', 'Cuisine', 'Voyage', 'Santé', 'Humour', 'Jeunesse',
   'Manga & BD', 'Science', 'Art & Musique', 'Sport', 'Religion & Spiritualité',
 ]
-export const COVERS = ['indigo', 'emerald', 'rose', 'sky', 'amber', 'slate']
+export const COVERS = ['indigo', 'emerald', 'rose', 'sky', 'amber', 'slate', 'sunset', 'ocean', 'forest', 'royal', 'candy', 'mono']
+export const BRAND_COLORS = ['amber', 'indigo', 'emerald', 'rose', 'sky', 'sunset', 'royal', 'forest', 'slate', 'mono']
 export const COVER_FONTS = ['serif', 'sans', 'mono', 'display', 'hand']
 export const COVER_PATTERNS = ['none', 'stripes', 'dots', 'grid', 'waves']
 export const COVER_LAYOUTS = ['classic', 'centered', 'minimal', 'band']
@@ -28,7 +29,7 @@ export function cleanCoverStyle(raw) {
     layout: pick(o.layout, COVER_LAYOUTS, 'classic'),
     emoji: String(o.emoji ?? '').slice(0, 8),
     textColor: /^#[0-9a-fA-F]{3,8}$/.test(o.textColor ?? '') ? o.textColor : '#ffffff',
-    image: /^https?:\/\//.test(o.image ?? '') || String(o.image ?? '').startsWith('/api/media/') ? String(o.image).slice(0, 500) : '',
+    image: String(o.image ?? '').startsWith('/api/media/') ? String(o.image).slice(0, 500) : '',
   }
 }
 
