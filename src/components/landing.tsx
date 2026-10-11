@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { BookCover } from '@/components/book-cover'
+import { usePlume } from '@/components/plume-provider'
 import { PublicAPI, GENRES, type Book } from '@/lib/plume'
 import { clickableProps } from '@/lib/a11y'
 
@@ -33,6 +34,7 @@ function BookCard({ book, onOpen }: { book: Book; onOpen: (b: Book) => void }) {
 
 export function Landing({ initialTrending = [] }: { initialTrending?: Book[] }) {
   const router = useRouter()
+  const { user } = usePlume()
   const [trending, setTrending] = useState<Book[]>(initialTrending)
   const [failed, setFailed] = useState(false)
   const [query, setQuery] = useState('')
@@ -55,6 +57,11 @@ export function Landing({ initialTrending = [] }: { initialTrending?: Book[] }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Déjà connecté : on va directement dans la bibliothèque (jamais la landing).
+  useEffect(() => {
+    if (user) router.replace('/bibliotheque')
+  }, [user, router])
+
   // Redirige vers la page de recherche (résultats complets)
   const goSearch = (q: string) => {
     const term = q.trim()
@@ -65,6 +72,9 @@ export function Landing({ initialTrending = [] }: { initialTrending?: Book[] }) 
   const openBook = (b: Book) => router.push(`/livres/${b.id}`)
   const signup = () => router.push('/inscription')
   const login = () => router.push('/connexion')
+
+  // Pendant la redirection, on n'affiche pas la landing marketing.
+  if (user) return null
 
   return (
     <div className="space-y-16 pb-10">
