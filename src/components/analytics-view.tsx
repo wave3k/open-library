@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   ArrowLeft, BookOpen, FileText, Eye, Heart, MessageSquare, TrendingUp,
   Loader2, Globe, Lock, FileEdit, Layers, BarChart3, Trophy,
@@ -154,11 +155,11 @@ export function AnalyticsView() {
               </thead>
               <tbody>
                 {books.map((b) => (
-                  <tr key={b.id} className="cursor-pointer border-b border-stone-100 last:border-0 hover:bg-stone-50" onClick={() => router.push(`/livres/${b.id}`)}>
+                  <tr key={b.id} className="border-b border-stone-100 last:border-0 hover:bg-stone-50">
                     <td className="py-2.5 pr-3">
                       <div className="flex items-center gap-2">
                         <div className="scale-75 origin-left"><BookCover book={{ cover: b.id }} title={b.title} author="" size="sm" /></div>
-                        <span className="font-medium">{b.title}</span>
+                        <Link href={`/livres/${b.id}`} className="rounded font-medium underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">{b.title}</Link>
                       </div>
                     </td>
                     <td className="px-3 py-2.5">

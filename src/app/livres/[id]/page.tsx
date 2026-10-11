@@ -329,19 +329,26 @@ export default function BookDetailPage() {
         )}
         <ol className="divide-y divide-stone-100">
           {chapters.map((ch, i) => (
-            <li key={ch.id} className="flex cursor-pointer items-center gap-2.5 py-3 hover:bg-stone-50" onClick={() => readChapter(ch.id)}>
-              <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${ch.id === progress[book.id] ? 'bg-amber-200 text-amber-900' : 'bg-stone-100 text-stone-600'}`}>
-                {i + 1}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{ch.title || `Chapitre ${i + 1}`}</p>
-                <p className="text-xs text-stone-500">
-                  {countWords(ch.content).toLocaleString('fr-FR')} mots
-                  {ch.id === progress[book.id] && <span className="ml-1.5 font-semibold text-amber-700">· en cours</span>}
-                </p>
-              </div>
+            <li key={ch.id} className="flex items-center gap-2.5 py-3 hover:bg-stone-50">
+              <button
+                type="button"
+                onClick={() => readChapter(ch.id)}
+                aria-label={`Lire ${ch.title || `Chapitre ${i + 1}`}`}
+                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+              >
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${ch.id === progress[book.id] ? 'bg-amber-200 text-amber-900' : 'bg-stone-100 text-stone-600'}`}>
+                  {i + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold">{ch.title || `Chapitre ${i + 1}`}</span>
+                  <span className="block text-xs text-stone-500">
+                    {countWords(ch.content).toLocaleString('fr-FR')} mots
+                    {ch.id === progress[book.id] && <span className="ml-1.5 font-semibold text-amber-700">· en cours</span>}
+                  </span>
+                </span>
+              </button>
               {isOwner && (
-                <span className="flex shrink-0" onClick={(e) => e.stopPropagation()}>
+                <span className="flex shrink-0">
                   <button disabled={i === 0} onClick={() => moveChapter(ch.id, -1)} className="rounded p-1.5 text-stone-500 hover:bg-stone-200 disabled:opacity-30" aria-label={`Monter ${ch.title}`} title="Monter">
                     <ChevronUp size={15} />
                   </button>
@@ -352,10 +359,10 @@ export default function BookDetailPage() {
               )}
               {isOwner && (
                 <>
-                  <button onClick={(e) => { e.stopPropagation(); router.push(`/livres/${book.id}/ecrire/${ch.id}`) }} className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-500 hover:bg-stone-200">
+                  <button onClick={() => router.push(`/livres/${book.id}/ecrire/${ch.id}`)} className="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-500 hover:bg-stone-200">
                     Écrire
                   </button>
-                  <button onClick={(e) => { e.stopPropagation(); setToDeleteCh(ch) }} className="shrink-0 rounded-lg px-2 py-1.5 text-stone-300 hover:bg-red-50 hover:text-red-600" aria-label={`Supprimer ${ch.title}`}>
+                  <button onClick={() => setToDeleteCh(ch)} className="shrink-0 rounded-lg px-2 py-1.5 text-stone-300 hover:bg-red-50 hover:text-red-600" aria-label={`Supprimer ${ch.title}`}>
                     <Trash2 size={15} />
                   </button>
                 </>
