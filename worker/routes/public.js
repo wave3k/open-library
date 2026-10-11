@@ -87,6 +87,34 @@ export async function publicRoutes({ req, db, url, path }) {
     return cacheJson({ books: (res.results || []).map((b) => publicCard(b)), query: q }, 30)
   }
 
+  // Inventaire pour le sitemap du front : livres publiés + profils publics.
+  if (method === 'GET' && path === '/api/public/sitemap') {
+    const [books, users] = await Promise.all([
+      db
+        .prepare(
+          `SELECT b.id, b.updated_at FROM books b
+           WHERE b.is_public = 1 AND EXISTS (SELECT 1 FROM chapters ch WHERE ch.book_id = b.id)
+           ORDER BY b.updated_at DESC LIMIT 5000`
+        )
+        .all(),
+      db
+        .prepare(
+          `SELECT username FROM users
+           WHERE username IS NOT NULL AND username != ''
+             AND (profile_visibility IS NULL OR profile_visibility = 'public')
+           ORDER BY created_at DESC LIMIT 5000`
+        )
+        .all(),
+    ])
+    return cacheJson(
+      {
+        books: (books.results || []).map((b) => ({ id: b.id, updated_at: b.updated_at })),
+        users: (users.results || []).map((u) => u.username),
+      },
+      3600
+    )
+  }
+
   const pubBookMatch = path.match(/^\/api\/public\/books\/([^/]+)$/)
   if (method === 'GET' && pubBookMatch) {
     const bid = pubBookMatch[1]

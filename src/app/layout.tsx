@@ -10,12 +10,20 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { SiteHeader } from '@/components/site-header'
 import { SiteFooter } from '@/components/site-footer'
 import { ScrollReset } from '@/components/scroll-reset'
+import { SITE_URL } from '@/lib/seo'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: 'Open Library — Publier et lire des livres gratuitement',
   description: 'Publier et lire des livres gratuitement. Écris tes histoires chapitre par chapitre, partage-les et découvre celles des autres sur Open Library.',
+  applicationName: 'Open Library',
+  openGraph: {
+    siteName: 'Open Library',
+    locale: 'fr_FR',
+    type: 'website',
+  },
 }
 
 // Applique le thème avant le premier rendu pour éviter le flash.

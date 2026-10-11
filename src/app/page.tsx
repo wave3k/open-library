@@ -1,5 +1,13 @@
 import { Landing } from '@/components/landing'
 import type { Book } from '@/lib/plume'
+import { pageMetadata } from '@/lib/seo'
+
+export const metadata = pageMetadata({
+  title: 'Open Library — Publier et lire des livres gratuitement',
+  description:
+    'Publie et lis des livres gratuitement. Écris ton histoire chapitre par chapitre, partage-la et découvre celles des autres sur Open Library.',
+  path: '/',
+})
 
 // Rendu serveur : les tendances arrivent dans le HTML initial (LCP/SEO),
 // puis le client prend le relais pour la recherche et les interactions.
