@@ -10,7 +10,7 @@ const API_UPSTREAM =
 // URL canonique publique du site (domaine propre). Les domaines techniques
 // (vercel.app) y sont redirigés en 308 pour éviter tout doublon d'indexation.
 const SITE_URL = (process.env.SITE_URL || "https://plume.hqmerchant.xyz").replace(/\/$/, "");
-const LEGACY_HOSTS = ["open-library-zeta.vercel.app"];
+const LEGACY_HOSTS = ["open-library.vercel.app", "open-library-zeta.vercel.app"];
 
 const nextConfig: NextConfig = {
   /* config options here */
