@@ -25,15 +25,20 @@ export default function MentionsLegalesPage() {
           <a href="https://plume.hqmerchant.xyz" className="underline">plume.hqmerchant.xyz</a>) est édité par :
         </p>
         <ul className="text-muted-foreground ml-5 list-disc space-y-1 leading-relaxed">
-          <li>Nom / raison sociale : <strong>[À COMPLÉTER]</strong></li>
-          <li>Statut juridique : [À COMPLÉTER] (ex. entrepreneur individuel, SASU…)</li>
-          <li>Adresse : [À COMPLÉTER]</li>
-          <li>Immatriculation (SIREN / RCS) : [À COMPLÉTER]</li>
-          <li>N° de TVA intracommunautaire : [À COMPLÉTER si applicable]</li>
+          <li>Éditeur : <strong>Enzo Izinga</strong> (personne physique)</li>
+          <li>Statut : édition à titre <strong>non professionnel</strong></li>
+          <li>Représentant légal : <strong>Paulette Sankinka</strong></li>
+          <li>Immatriculation (SIREN / RCS) : néant (activité non professionnelle)</li>
+          <li>N° de TVA intracommunautaire : néant</li>
           <li>E-mail de contact : <a href="mailto:contact@hqmerchant.xyz" className="underline">contact@hqmerchant.xyz</a></li>
         </ul>
         <p className="text-muted-foreground leading-relaxed">
-          Directeur de la publication : <strong>[À COMPLÉTER : nom et prénom]</strong>.
+          Directeur de la publication : <strong>Enzo Izinga</strong>.
+        </p>
+        <p className="text-muted-foreground leading-relaxed">
+          Conformément à l’article 6-III-2 de la loi pour la confiance dans l’économie numérique (LCEN),
+          l’adresse personnelle de l’éditeur, personne physique agissant à titre non professionnel, n’est pas
+          communiquée au public. Les coordonnées de l’hébergeur ci-dessous permettent de le contacter.
         </p>
       </section>
 

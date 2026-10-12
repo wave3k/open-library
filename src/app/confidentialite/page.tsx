@@ -25,7 +25,8 @@ export default function ConfidentialitePage() {
       <section className="space-y-2">
         <h2 className="text-xl font-bold">1. Responsable de traitement</h2>
         <p className="text-muted-foreground leading-relaxed">
-          Le responsable du traitement est l’éditeur de Plume : <strong>[À COMPLÉTER]</strong>, joignable à{' '}
+          Le responsable du traitement est <strong>Enzo Izinga</strong>, éditeur de Plume (représenté par son
+          représentant légal, <strong>Paulette Sankinka</strong>), joignable à{' '}
           <a href="mailto:contact@hqmerchant.xyz" className="underline">contact@hqmerchant.xyz</a>.
         </p>
       </section>
