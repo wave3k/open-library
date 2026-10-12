@@ -15,6 +15,7 @@ export function isAllowedOrigin(origin) {
     if (hostname === 'localhost' || hostname === '127.0.0.1') return true
     if (hostname.endsWith('.vercel.app')) return true
     if (hostname.endsWith('.lirostudio.workers.dev')) return true
+    if (hostname === 'hqmerchant.xyz' || hostname.endsWith('.hqmerchant.xyz')) return true
     return false
   } catch {
     return false

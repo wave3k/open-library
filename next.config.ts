@@ -7,6 +7,11 @@ import type { NextConfig } from "next";
 const API_UPSTREAM =
   process.env.API_UPSTREAM || "https://open-library-staging.lirostudio.workers.dev";
 
+// URL canonique publique du site (domaine propre). Les domaines techniques
+// (vercel.app) y sont redirigés en 308 pour éviter tout doublon d'indexation.
+const SITE_URL = (process.env.SITE_URL || "https://open-library-zeta.vercel.app").replace(/\/$/, "");
+const LEGACY_HOSTS = ["open-library-zeta.vercel.app"];
+
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
@@ -18,6 +23,20 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
+  },
+  async redirects() {
+    let target: URL;
+    try {
+      target = new URL(SITE_URL);
+    } catch {
+      return [];
+    }
+    return LEGACY_HOSTS.filter((h) => h !== target.host).map((h) => ({
+      source: "/:path*",
+      has: [{ type: "host" as const, value: h }],
+      destination: `${SITE_URL}/:path*`,
+      permanent: true,
+    }));
   },
   async rewrites() {
     return [
