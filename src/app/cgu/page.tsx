@@ -109,8 +109,9 @@ export default function CguPage() {
       <section className="space-y-2">
         <h2 className="text-xl font-bold">10. Droit applicable</h2>
         <p className="text-muted-foreground leading-relaxed">
-          Les présentes conditions sont soumises au <strong>droit français</strong>. En cas de litige, une solution
-          amiable sera recherchée avant toute action ; à défaut, les tribunaux français seront compétents.
+          Les présentes conditions sont soumises au <strong>droit de la République démocratique du Congo</strong>. En
+          cas de litige, une solution amiable sera recherchée avant toute action ; à défaut, les juridictions
+          compétentes sont celles de Kinshasa.
         </p>
       </section>
 

@@ -26,19 +26,19 @@ export default function MentionsLegalesPage() {
         </p>
         <ul className="text-muted-foreground ml-5 list-disc space-y-1 leading-relaxed">
           <li>Éditeur : <strong>Enzo Izinga</strong> (personne physique)</li>
+          <li>Pays d’établissement : <strong>République démocratique du Congo</strong></li>
           <li>Statut : édition à titre <strong>non professionnel</strong></li>
           <li>Représentant légal : <strong>Paulette Sankinka</strong></li>
-          <li>Immatriculation (SIREN / RCS) : néant (activité non professionnelle)</li>
-          <li>N° de TVA intracommunautaire : néant</li>
+          <li>Immatriculation (registre du commerce) : sans objet</li>
+          <li>N° de TVA : sans objet</li>
           <li>E-mail de contact : <a href="mailto:contact@hqmerchant.xyz" className="underline">contact@hqmerchant.xyz</a></li>
         </ul>
         <p className="text-muted-foreground leading-relaxed">
           Directeur de la publication : <strong>Enzo Izinga</strong>.
         </p>
         <p className="text-muted-foreground leading-relaxed">
-          Conformément à l’article 6-III-2 de la loi pour la confiance dans l’économie numérique (LCEN),
-          l’adresse personnelle de l’éditeur, personne physique agissant à titre non professionnel, n’est pas
-          communiquée au public. Les coordonnées de l’hébergeur ci-dessous permettent de le contacter.
+          L’éditeur étant une personne physique, son adresse personnelle n’est pas publiée : il peut être contacté à
+          l’adresse e-mail ci-dessus. Les coordonnées des hébergeurs figurent ci-dessous.
         </p>
       </section>
 
@@ -78,6 +78,14 @@ export default function MentionsLegalesPage() {
           Pour signaler un contenu illicite ou une atteinte à un droit, écris à{' '}
           <a href="mailto:contact@hqmerchant.xyz" className="underline">contact@hqmerchant.xyz</a> en précisant l’URL
           concernée et le motif.
+        </p>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-xl font-bold">Droit applicable</h2>
+        <p className="text-muted-foreground leading-relaxed">
+          L’éditeur étant établi en République démocratique du Congo, le présent site et les présentes mentions sont
+          soumis au <strong>droit congolais</strong>.
         </p>
       </section>
 

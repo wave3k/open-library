@@ -25,8 +25,9 @@ export default function ConfidentialitePage() {
       <section className="space-y-2">
         <h2 className="text-xl font-bold">1. Responsable de traitement</h2>
         <p className="text-muted-foreground leading-relaxed">
-          Le responsable du traitement est <strong>Enzo Izinga</strong>, éditeur de Plume (représenté par son
-          représentant légal, <strong>Paulette Sankinka</strong>), joignable à{' '}
+          Le responsable du traitement est <strong>Enzo Izinga</strong>, éditeur de Plume, établi en{' '}
+          <strong>République démocratique du Congo</strong> (représenté par son représentant légal,{' '}
+          <strong>Paulette Sankinka</strong>), joignable à{' '}
           <a href="mailto:contact@hqmerchant.xyz" className="underline">contact@hqmerchant.xyz</a>.
         </p>
       </section>
@@ -91,20 +92,30 @@ export default function ConfidentialitePage() {
       <section className="space-y-2">
         <h2 className="text-xl font-bold">8. Tes droits</h2>
         <p className="text-muted-foreground leading-relaxed">
-          Conformément au RGPD, tu disposes des droits d’<strong>accès</strong>, de <strong>rectification</strong>, d’
+          Tu disposes des droits d’<strong>accès</strong>, de <strong>rectification</strong>, d’
           <strong>effacement</strong>, de <strong>portabilité</strong>, de <strong>limitation</strong> et d’
-          <strong>opposition</strong>. Tu peux modifier tes informations depuis les paramètres et supprimer ton compte
-          directement dans l’application. Pour toute demande, écris à{' '}
+          <strong>opposition</strong> sur tes données. Tu peux modifier tes informations depuis les paramètres et
+          supprimer ton compte directement dans l’application. Pour toute demande, écris à{' '}
           <a href="mailto:contact@hqmerchant.xyz" className="underline">contact@hqmerchant.xyz</a>.
         </p>
         <p className="text-muted-foreground leading-relaxed">
-          Si tu estimes que tes droits ne sont pas respectés, tu peux saisir la <strong>CNIL</strong> (
-          <a href="https://www.cnil.fr" className="underline">cnil.fr</a>).
+          <strong>Si tu résides dans l’Union européenne :</strong> le Règlement général sur la protection des données
+          (RGPD) s’applique à tes données. Tu peux saisir l’autorité de contrôle de ton pays, par exemple la{' '}
+          <strong>CNIL</strong> en France (<a href="https://www.cnil.fr" className="underline">cnil.fr</a>).
         </p>
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-xl font-bold">9. Sécurité</h2>
+        <h2 className="text-xl font-bold">9. Droit applicable</h2>
+        <p className="text-muted-foreground leading-relaxed">
+          L’éditeur étant établi en <strong>République démocratique du Congo</strong>, le traitement des données est
+          régi par la <strong>législation congolaise</strong> relative à la protection des données à caractère
+          personnel, sans préjudice des droits reconnus aux personnes résidant dans l’Union européenne.
+        </p>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-xl font-bold">10. Sécurité</h2>
         <p className="text-muted-foreground leading-relaxed">
           Les mots de passe sont stockés <strong>hachés</strong>, les échanges sont chiffrés (HTTPS) et l’accès aux
           données est limité au strict nécessaire. Aucun système n’étant infaillible, nous te recommandons un mot de
