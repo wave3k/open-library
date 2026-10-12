@@ -1,16 +1,37 @@
 import type { MetadataRoute } from 'next'
 import { SITE_URL } from '@/lib/seo'
+import { GENRES } from '@/lib/plume'
+import { genreSlug } from '@/lib/genres'
 
-// Le sitemap liste les pages publiques indexables : accueil + livres publiés
-// + profils publics. Les données viennent du Worker (API_UPSTREAM) ; en cas
-// d'échec, on renvoie au moins l'accueil (jamais de sitemap vide).
+// Le sitemap liste les pages publiques indexables : pages éditoriales, pages
+// de genre, livres publiés et profils publics. Les données dynamiques viennent
+// du Worker (API_UPSTREAM) ; en cas d'échec, on renvoie au moins les pages fixes.
 const API = process.env.API_UPSTREAM || ''
+
+const FIXED_PAGES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'] }[] = [
+  { path: '/', priority: 1, changeFrequency: 'daily' },
+  { path: '/publier-un-livre', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/ecrire-un-livre', priority: 0.9, changeFrequency: 'monthly' },
+  { path: '/alternative-wattpad', priority: 0.8, changeFrequency: 'monthly' },
+]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
-  const entries: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}/`, lastModified: now, changeFrequency: 'daily', priority: 1 },
-  ]
+  const entries: MetadataRoute.Sitemap = FIXED_PAGES.map((p) => ({
+    url: `${SITE_URL}${p.path}`,
+    lastModified: now,
+    changeFrequency: p.changeFrequency,
+    priority: p.priority,
+  }))
+
+  for (const g of GENRES) {
+    entries.push({
+      url: `${SITE_URL}/genre/${genreSlug(g)}`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    })
+  }
 
   if (!API) return entries
 
@@ -39,7 +60,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     }
   } catch {
-    // silencieux : on garde au moins l'accueil
+    // silencieux : on garde au moins les pages fixes
   }
 
   return entries

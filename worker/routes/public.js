@@ -25,6 +25,7 @@ export async function publicRoutes({ req, db, url, path }) {
 
   if (method === 'GET' && path === '/api/public/search') {
     const q = String(url.searchParams.get('q') ?? '').trim().slice(0, 60)
+    const genre = String(url.searchParams.get('genre') ?? '').trim().slice(0, 40)
     let res
     if (!q) {
       res = await db
@@ -36,8 +37,10 @@ export async function publicRoutes({ req, db, url, path }) {
                   (SELECT COUNT(*) FROM chapters ch WHERE ch.book_id = b.id) AS chapter_count
            FROM books b LEFT JOIN users u ON u.id = b.owner_id
            WHERE b.is_public = 1 AND EXISTS (SELECT 1 FROM chapters ch WHERE ch.book_id = b.id)
+             ${genre ? 'AND b.genre = ?' : ''}
            ORDER BY b.updated_at DESC LIMIT 24`
         )
+        .bind(...(genre ? [genre] : []))
         .all()
     } else {
       const like = `%${q.toLowerCase()}%`

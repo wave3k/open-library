@@ -59,19 +59,35 @@ function BookRow({ book, onOpen }: { book: Book; onOpen: () => void }) {
   )
 }
 
-export function ProfileView({ username }: { username?: string }) {
+export type ProfileInitial = {
+  user: User
+  stats: ProfileStats
+  books: Book[]
+  followers: number
+  following: number
+  is_following: boolean
+  follow_status: 'accepted' | 'pending' | null
+  restricted: boolean
+  visibility: 'public' | 'followers' | 'private'
+}
+
+export function ProfileView({ username, initial = null }: { username?: string; initial?: ProfileInitial | null }) {
   const router = useRouter()
   const { user: me, stats: myStats, mine: myBooks, refreshStats, refreshBooks } = usePlume()
   const isSelf = !username
-  const [remote, setRemote] = useState<{ user: User; stats: ProfileStats; books: Book[] } | null>(null)
-  const [counts, setCounts] = useState<{ followers: number; following: number } | null>(null)
-  const [isFollowing, setIsFollowing] = useState(false)
-  const [followStatus, setFollowStatus] = useState<'accepted' | 'pending' | null>(null)
+  const [remote, setRemote] = useState<{ user: User; stats: ProfileStats; books: Book[] } | null>(
+    initial && !isSelf ? { user: initial.user, stats: initial.stats, books: initial.books } : null
+  )
+  const [counts, setCounts] = useState<{ followers: number; following: number } | null>(
+    initial ? { followers: initial.followers, following: initial.following } : null
+  )
+  const [isFollowing, setIsFollowing] = useState(initial?.is_following ?? false)
+  const [followStatus, setFollowStatus] = useState<'accepted' | 'pending' | null>(initial?.follow_status ?? null)
   const [requests, setRequests] = useState<AuthorRef[]>([])
-  const [restricted, setRestricted] = useState(false)
-  const [visibility, setVisibility] = useState<'public' | 'followers' | 'private'>('public')
+  const [restricted, setRestricted] = useState(!!initial?.restricted)
+  const [visibility, setVisibility] = useState<'public' | 'followers' | 'private'>(initial?.visibility ?? 'public')
   const [followBusy, setFollowBusy] = useState(false)
-  const [loading, setLoading] = useState(!isSelf)
+  const [loading, setLoading] = useState(!isSelf && !initial)
   const [editing, setEditing] = useState(false)
   const [tab, setTab] = useState<'oeuvres' | 'a-propos'>('oeuvres')
   const [crop, setCrop] = useState<{ file: File; kind: 'avatar' | 'banner' } | null>(null)
@@ -82,7 +98,7 @@ export function ProfileView({ username }: { username?: string }) {
   const loadProfile = useCallback(async () => {
     const handle = isSelf ? me?.username : username
     if (!handle) return
-    if (!isSelf) setLoading(true)
+    if (!isSelf && !initial) setLoading(true)
     try {
       const d = await ProfileAPI.get(handle)
       setCounts({ followers: d.followers, following: d.following })
@@ -96,7 +112,7 @@ export function ProfileView({ username }: { username?: string }) {
     } finally {
       setLoading(false)
     }
-  }, [isSelf, me?.username, username])
+  }, [isSelf, me?.username, username, initial])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

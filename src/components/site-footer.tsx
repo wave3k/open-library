@@ -48,9 +48,9 @@ export function SiteFooter() {
             <h3 className="text-sm font-bold">Découvrir</h3>
             <ul className="mt-3 space-y-2 text-sm">
               <li><Link href="/recherche" className="text-muted-foreground transition-colors hover:text-amber-700">Explorer les livres</Link></li>
-              <li><Link href="/recherche?q=Romance" className="text-muted-foreground transition-colors hover:text-amber-700">Romance</Link></li>
-              <li><Link href="/recherche?q=Science-Fiction" className="text-muted-foreground transition-colors hover:text-amber-700">Science-Fiction</Link></li>
-              <li><Link href="/recherche?q=Programmation" className="text-muted-foreground transition-colors hover:text-amber-700">Programmation</Link></li>
+              <li><Link href="/genre/romance" className="text-muted-foreground transition-colors hover:text-amber-700">Livres de romance</Link></li>
+              <li><Link href="/genre/fantastique" className="text-muted-foreground transition-colors hover:text-amber-700">Livres fantastiques</Link></li>
+              <li><Link href="/genre/science-fiction" className="text-muted-foreground transition-colors hover:text-amber-700">Science-Fiction</Link></li>
             </ul>
           </div>
 
@@ -58,12 +58,13 @@ export function SiteFooter() {
           <div>
             <h3 className="text-sm font-bold">Écrire</h3>
             <ul className="mt-3 space-y-2 text-sm">
+              <li><Link href="/ecrire-un-livre" className="text-muted-foreground transition-colors hover:text-amber-700">Écrire un livre en ligne</Link></li>
+              <li><Link href="/publier-un-livre" className="text-muted-foreground transition-colors hover:text-amber-700">Publier un livre gratuitement</Link></li>
+              <li><Link href="/alternative-wattpad" className="text-muted-foreground transition-colors hover:text-amber-700">Alternative à Wattpad</Link></li>
               {user ? (
                 <>
                   <li><Link href="/bibliotheque" className="text-muted-foreground transition-colors hover:text-amber-700">Ma bibliothèque</Link></li>
-                  <li><Link href="/livres/nouveau" className="text-muted-foreground transition-colors hover:text-amber-700">Écrire un livre</Link></li>
                   <li><Link href="/notifications" className="text-muted-foreground transition-colors hover:text-amber-700">Notifications</Link></li>
-                  <li><Link href="/parametres" className="text-muted-foreground transition-colors hover:text-amber-700">Paramètres</Link></li>
                 </>
               ) : (
                 <>

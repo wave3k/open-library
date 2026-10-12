@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { BookCover } from '@/components/book-cover'
 import { usePlume } from '@/components/plume-provider'
 import { PublicAPI, GENRES, type Book } from '@/lib/plume'
+import { HOME_FAQ } from '@/lib/faq'
 import { clickableProps } from '@/lib/a11y'
 
 function BookCard({ book, onOpen }: { book: Book; onOpen: (b: Book) => void }) {
@@ -196,6 +197,21 @@ export function Landing({ initialTrending = [] }: { initialTrending?: Book[] }) 
             <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">{text}</p>
           </div>
         ))}
+      </section>
+
+      {/* FAQ (texte visible + balisage FAQPage côté page) */}
+      <section>
+        <h2 className="mb-4 text-2xl font-bold">Questions fréquentes</h2>
+        <div className="space-y-3">
+          {HOME_FAQ.map((item) => (
+            <details key={item.q} className="bg-card group rounded-2xl border p-5">
+              <summary className="cursor-pointer list-none font-semibold marker:hidden">
+                {item.q}
+              </summary>
+              <p className="text-muted-foreground mt-3 text-sm leading-relaxed">{item.a}</p>
+            </details>
+          ))}
+        </div>
       </section>
 
       {/* CTA */}

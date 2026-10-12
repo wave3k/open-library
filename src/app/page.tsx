@@ -1,6 +1,9 @@
 import { Landing } from '@/components/landing'
 import type { Book } from '@/lib/plume'
+import { JsonLd } from '@/components/json-ld'
 import { pageMetadata } from '@/lib/seo'
+import { siteJsonLd, faqJsonLd } from '@/lib/jsonld'
+import { HOME_FAQ } from '@/lib/faq'
 
 export const metadata = pageMetadata({
   title: 'Open Library — Publier et lire des livres gratuitement',
@@ -22,5 +25,11 @@ export default async function HomePage() {
       // silencieux : le client réessaiera
     }
   }
-  return <Landing initialTrending={initialTrending} />
+  return (
+    <>
+      <JsonLd data={siteJsonLd()} />
+      <JsonLd data={faqJsonLd(HOME_FAQ)} />
+      <Landing initialTrending={initialTrending} />
+    </>
+  )
 }
