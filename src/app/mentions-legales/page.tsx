@@ -34,7 +34,7 @@ export default function MentionsLegalesPage() {
           <li>E-mail de contact : <a href="mailto:contact@hqmerchant.xyz" className="underline">contact@hqmerchant.xyz</a></li>
         </ul>
         <p className="text-muted-foreground leading-relaxed">
-          Directeur de la publication : <strong>Enzo Izinga</strong>.
+          Directeur de la publication : <strong>Paulette Sankinka</strong>.
         </p>
         <p className="text-muted-foreground leading-relaxed">
           L’éditeur étant une personne physique, son adresse personnelle n’est pas publiée : il peut être contacté à
