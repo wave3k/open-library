@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
 import { SITE_NAME } from '@/lib/seo'
 
 // Image OpenGraph par défaut (partagée sur les réseaux et lue par les IA).
-export const alt = 'Open Library — publier et lire des livres gratuitement'
+export const alt = 'Plume — publier et lire des livres gratuitement'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 

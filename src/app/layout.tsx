@@ -16,11 +16,11 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: 'Open Library — Publier et lire des livres gratuitement',
-  description: 'Publier et lire des livres gratuitement. Écris tes histoires chapitre par chapitre, partage-les et découvre celles des autres sur Open Library.',
-  applicationName: 'Open Library',
+  title: 'Plume — Publier et lire des livres gratuitement',
+  description: 'Publier et lire des livres gratuitement. Écris tes histoires chapitre par chapitre, partage-les et découvre celles des autres sur Plume.',
+  applicationName: 'Plume',
   openGraph: {
-    siteName: 'Open Library',
+    siteName: 'Plume',
     locale: 'fr_FR',
     type: 'website',
   },

@@ -16,10 +16,10 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
   const genre = genreFromSlug(slug)
-  if (!genre) return { title: 'Genre introuvable — Open Library', robots: NO_INDEX }
+  if (!genre) return { title: 'Genre introuvable — Plume', robots: NO_INDEX }
   return pageMetadata({
-    title: `Livres de ${genre} à lire gratuitement | Open Library`,
-    description: `Découvre des livres de ${genre} à lire en ligne gratuitement sur Open Library. Histoires de la communauté, classées par popularité et nouveauté.`,
+    title: `Livres de ${genre} à lire gratuitement | Plume`,
+    description: `Découvre des livres de ${genre} à lire en ligne gratuitement sur Plume. Histoires de la communauté, classées par popularité et nouveauté.`,
     path: `/genre/${slug}`,
   })
 }
@@ -81,7 +81,7 @@ export default async function GenrePage({ params }: { params: Promise<{ slug: st
       <header>
         <h1 className="text-3xl font-bold tracking-tight">Livres de {genre} à lire gratuitement</h1>
         <p className="text-muted-foreground mt-3 max-w-2xl leading-relaxed">
-          Une sélection de livres de <strong>{genre}</strong> publiés sur Open Library, lisibles en ligne et
+          Une sélection de livres de <strong>{genre}</strong> publiés sur Plume, lisibles en ligne et
           gratuitement. Écris aussi les tiens, chapitre par chapitre.
         </p>
       </header>

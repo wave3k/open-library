@@ -1,4 +1,4 @@
-# GEO — Open Library — 11 octobre 2026
+# GEO — Plume — 11 octobre 2026
 
 Volet GEO (Generative Engine Optimization) de l'audit. Le GEO se joue
 **hors-site** : un LLM cite une marque quand des **sources tierces** la
@@ -30,7 +30,7 @@ source tierce**.
 |---|---|---|
 | « meilleur site pour publier et lire gratuitement en français » | Non | Atramenta, Édition999, Wattpad, Gallica |
 | « meilleure alternative à Wattpad pour un auteur francophone » | Non | TheBookSailor, Fyctia, Atramenta (+ Hugo Publishing) |
-| « connais-tu Open Library (open-library-zeta.vercel.app) ? » | Non (confusion) | openlibrary.org (Internet Archive) |
+| « connais-tu Plume (open-library-zeta.vercel.app) ? » | Non (confusion) | openlibrary.org (Internet Archive) |
 
 ### AI Overviews Google (contenu extrait, 11/10/2026)
 
@@ -42,7 +42,7 @@ source tierce**.
 | écrire un livre en ligne | WriteControl, TheBookEdition, TheArtistAcademy |
 | lire des livres gratuitement | (overview présent — Kifflire, YouScribe, Kobo…) |
 
-**Aucune de ces réponses ne mentionne Open Library.**
+**Aucune de ces réponses ne mentionne Plume.**
 
 ---
 
@@ -74,7 +74,7 @@ Shortbread.ai) pour « alternative wattpad ».
 | « meilleure plateforme pour publier un livre gratuitement » | `/publier-un-livre` | **à créer** |
 | « alternative à Wattpad francophone » | `/alternative-wattpad` | **à créer** |
 | « meilleur livre [genre] gratuit à lire » | `/genre/[slug]` | **à créer** |
-| « qu'est-ce que Open Library » | `/` + entité | **ambigü** (collision openlibrary.org) |
+| « qu'est-ce que Plume » | `/` + entité | **ambigü** (collision openlibrary.org) |
 
 ---
 
@@ -104,7 +104,7 @@ le pigeon décoiffé (listicles thématiques), puis Quora et Reddit.
 | Entité | État | Action |
 |---|---|---|
 | Wikipedia | absente | créer seulement si notoriété (pas de page vide) |
-| Wikidata | absente | créer l'élément Open Library (HQStudio) |
+| Wikidata | absente | créer l'élément Plume (HQStudio) |
 | Crunchbase | absente | fiche entreprise |
 | LinkedIn (page HQStudio) | à vérifier | créer/à jour |
 | GitHub (org HQStudio) | à vérifier | visibilité dev |
@@ -113,21 +113,21 @@ le pigeon décoiffé (listicles thématiques), puis Quora et Reddit.
 
 ## 6. Levier « marque » — avertissement CRISPR
 
-La marque **« Open Library » est déjà portée par un acteur massif**
+La marque **« Plume » est déjà portée par un acteur massif**
 (openlibrary.org, Internet Archive). Résultat observé en direct : ChatGPT a
 répondu avec openlibrary.org à une question sur la marque.
 
 **Conséquences SEO/GEO** :
-- Les recherches de marque (« Open Library avis », « Open Library site »)
+- Les recherches de marque (« Plume avis », « Plume site »)
   ramèneront l'Internet Archive, pas ce site.
 - Les LLM associent le nom à l'entité existante → exactitude de marque à 0.
 
 **Options** (décision produit, pas technique) :
-1. Adopter une marque distinctive (ex. un nom propre, pas « Open Library »).
+1. Adopter une marque distinctive (ex. un nom propre, pas « Plume »).
 2. Vivre avec la collision en misant sur des mots-clés métiers
    (« publier un livre gratuitement », « écrire un livre en ligne ») plutôt
    que sur la marque.
-3. Toujours désambiguïser dans les contenus : « Open Library (la plateforme
+3. Toujours désambiguïser dans les contenus : « Plume (la plateforme
    d'écriture HQStudio), à ne pas confondre avec openlibrary.org ».
 
 ---

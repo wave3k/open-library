@@ -71,7 +71,7 @@ profil pour être citée.
 | Données propriétaires | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ (à produire) |
 
 **Trou identifié** : personne ne relie « écrire » à « avoir des lecteurs ».
-Tous s'arrêtent au manuscrit. Open Library peut occuper ce trou.
+Tous s'arrêtent au manuscrit. Plume peut occuper ce trou.
 
 ### Brief
 
@@ -87,7 +87,7 @@ Tous s'arrêtent au manuscrit. Open Library peut occuper ce trou.
     réponse directe 40–60 mots (oui, sans installation).
   - H2 *Les meilleurs outils pour écrire un livre en 2026* → **tableau**
     (outil, prix, fonctions, publication incluse, communauté).
-  - H2 *Écrire avec Open Library* → éditeur de chapitres, brouillons,
+  - H2 *Écrire avec Plume* → éditeur de chapitres, brouillons,
     publication, suivi.
   - H2 *Comment trouver des lecteurs ?* → le point que personne ne traite.
   - H2 *Et les droits d'auteur ?* → réponse claire.

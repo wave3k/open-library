@@ -36,11 +36,11 @@ export function SiteHeader() {
   return (
     <header className="bg-card/80 sticky top-0 z-20 border-b backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4">
-        <Link href={user ? '/bibliotheque' : '/'} className="group flex items-center gap-2" aria-label="Accueil Open Library">
+        <Link href={user ? '/bibliotheque' : '/'} className="group flex items-center gap-2" aria-label="Accueil Plume">
           <span className="bg-primary text-primary-foreground flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-3">
             <LibraryBig size={18} />
           </span>
-          <span className="text-xl font-bold tracking-tight">Open Library</span>
+          <span className="text-xl font-bold tracking-tight">Plume</span>
         </Link>
 
         <div className="ml-auto flex items-center gap-1 text-sm">

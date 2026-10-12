@@ -166,7 +166,7 @@ const authors = [
 ]
 
 const lines = []
-lines.push('-- Seed Open Library : 5 comptes x 3 livres. Mot de passe : openlibrary')
+lines.push('-- Seed Plume : 5 comptes x 3 livres. Mot de passe : openlibrary')
 lines.push("DELETE FROM comment_likes; DELETE FROM comments; DELETE FROM likes; DELETE FROM reads; DELETE FROM follows; DELETE FROM notifications; DELETE FROM chapters; DELETE FROM books; DELETE FROM sessions; DELETE FROM users;")
 
 const now = '2026-10-01T10:00:00.000Z'

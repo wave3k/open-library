@@ -7,10 +7,10 @@ import { fetchPublicBook } from '@/lib/server-api'
 // serveur fournit titre/description/canonique à partir du livre réel.
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
-  const fallback: Metadata = { title: 'Livre — Open Library', robots: NO_INDEX }
+  const fallback: Metadata = { title: 'Livre — Plume', robots: NO_INDEX }
   const book = (await fetchPublicBook(id)) as Book | null
   if (!book) return fallback // livre privé ou inexistant → non indexable
-  const title = `${book.title} — ${book.author} | Lire en ligne | Open Library`
+  const title = `${book.title} — ${book.author} | Lire en ligne | Plume`
   const description =
     (book.description || '').slice(0, 155) ||
     `Lis « ${book.title} » de ${book.author} gratuitement et en ligne sur ${SITE_NAME}.`

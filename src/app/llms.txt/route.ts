@@ -3,11 +3,11 @@ import { SITE_URL } from '@/lib/seo'
 // llms.txt : contexte du site pour les moteurs IA. Généré depuis SITE_URL pour
 // suivre automatiquement le domaine courant (pas d'URL en dur).
 export function GET() {
-  const body = `# Open Library
+  const body = `# Plume
 
 > Plateforme française gratuite pour écrire, publier et lire des livres en ligne, chapitre par chapitre. Publier y est gratuit et l'auteur conserve ses droits.
 
-Open Library permet de créer un livre, d'écrire ses chapitres dans un éditeur en ligne, de le publier publiquement et de le faire lire. Les lecteurs suivent des auteurs, commentent et reçoivent des recommandations. La lecture nécessite un compte gratuit ; l'exploration des livres et les fiches sont publiques.
+Plume permet de créer un livre, d'écrire ses chapitres dans un éditeur en ligne, de le publier publiquement et de le faire lire. Les lecteurs suivent des auteurs, commentent et reçoivent des recommandations. La lecture nécessite un compte gratuit ; l'exploration des livres et les fiches sont publiques.
 
 ## Services
 - [Publier un livre gratuitement](${SITE_URL}/publier-un-livre) : créer et publier un livre sans frais
@@ -21,7 +21,7 @@ Open Library permet de créer un livre, d'écrire ses chapitres dans un éditeur
 - [Science-Fiction](${SITE_URL}/genre/science-fiction)
 
 ## À propos
-- Open Library est un projet indépendant conçu par HQStudio. [À COMPLÉTER : contact, mentions légales]
+- Plume est un projet indépendant conçu par HQStudio. [À COMPLÉTER : contact, mentions légales]
 
 ## Optional
 - [Créer un compte](${SITE_URL}/inscription) : inscription gratuite

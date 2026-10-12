@@ -1,4 +1,4 @@
-# Règles SEO & GEO — Open Library
+# Règles SEO & GEO — Plume
 
 > Ces règles **priment sur les intuitions contraires**. Toute création ou
 > modification d'une page passe par cette checklist avant d'être considérée

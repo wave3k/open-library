@@ -5,14 +5,14 @@ import { fetchPublicProfile } from '@/lib/server-api'
 // Métadonnées d'un profil public (la page elle-même est un composant client).
 export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
   const { username } = await params
-  const fallback: Metadata = { title: 'Profil — Open Library', robots: NO_INDEX }
+  const fallback: Metadata = { title: 'Profil — Plume', robots: NO_INDEX }
   const data = await fetchPublicProfile(username)
   if (!data) return fallback
   const name = data.user?.display_name || data.user?.name || username
   const handle = data.user?.username || username
-  if (data.visibility === 'private') return { title: `${name} — Open Library`, robots: NO_INDEX }
-  const title = `${name} (@${handle}) — livres et histoires | Open Library`
-  const description = (data.user?.bio || '').slice(0, 155) || `Découvre les livres et histoires de ${name} sur Open Library.`
+  if (data.visibility === 'private') return { title: `${name} — Plume`, robots: NO_INDEX }
+  const title = `${name} (@${handle}) — livres et histoires | Plume`
+  const description = (data.user?.bio || '').slice(0, 155) || `Découvre les livres et histoires de ${name} sur Plume.`
   return {
     title,
     description,

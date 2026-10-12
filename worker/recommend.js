@@ -167,7 +167,7 @@ function reasonFor(book, parts, aff, ctx) {
   if (parts.genrePref >= 0.6) return `Parce que tu aimes ${book.genre}`
   if (topTag && topTag.s > 0.4) return `Dans la veine de tes lectures · #${topTag.t}`
   if (parts.engagement > 0.5 || parts.likesN > 0.6) return 'Très apprécié des lecteurs'
-  if (parts.freshness > 0.7) return 'Nouveau sur Open Library'
+  if (parts.freshness > 0.7) return 'Nouveau sur Plume'
   if (ctx.seen.has(book.id)) return 'À relire'
   return 'À découvrir'
 }

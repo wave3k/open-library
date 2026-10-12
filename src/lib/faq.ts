@@ -2,7 +2,7 @@
 // (les réponses balisées doivent correspondre au texte visible).
 export const HOME_FAQ: { q: string; a: string }[] = [
   {
-    q: 'Publier un livre sur Open Library est-il vraiment gratuit ?',
+    q: 'Publier un livre sur Plume est-il vraiment gratuit ?',
     a: 'Oui. Créer un compte, écrire et publier un livre sont entièrement gratuits, sans abonnement. L’auteur reste propriétaire de son œuvre.',
   },
   {
@@ -11,7 +11,7 @@ export const HOME_FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Faut-il installer une application ?',
-    a: 'Non. Open Library fonctionne directement dans le navigateur, sur ordinateur comme sur téléphone.',
+    a: 'Non. Plume fonctionne directement dans le navigateur, sur ordinateur comme sur téléphone.',
   },
   {
     q: 'Puis-je écrire un livre depuis mon téléphone ?',
@@ -19,6 +19,6 @@ export const HOME_FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Mes droits d’auteur sont-ils conservés ?',
-    a: 'Oui. Tu restes propriétaire de tes textes : publier sur Open Library ne transfère aucun droit.',
+    a: 'Oui. Tu restes propriétaire de tes textes : publier sur Plume ne transfère aucun droit.',
   },
 ]

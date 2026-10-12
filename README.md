@@ -1,4 +1,4 @@
-# Open Library
+# Plume
 
 Application web **gratuite** pour **publier et lire des livres** (façon Wattpad) : profils, bibliothèque personnelle + exploration, éditeur de chapitres enrichi, mode lecture soigné, recommandations, abonnements et notifications.
 

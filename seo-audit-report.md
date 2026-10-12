@@ -1,4 +1,4 @@
-# Audit SEO & GEO — Open Library — 11 octobre 2026
+# Audit SEO & GEO — Plume — 11 octobre 2026
 
 Audit réalisé avec les skills : `seo-audit` (orchestrateur), `ai-seo`,
 `audit-visibilite-ia`, `site-architecture`, `schema`, `llms-txt-schema`,
@@ -20,7 +20,7 @@ Audit réalisé avec les skills : `seo-audit` (orchestrateur), `ai-seo`,
 4. **Visibilité IA = 0/100** : sur 3 questions posées à ChatGPT, la marque n'est
    jamais citée (Atramenta, Édition999, TheBookSailor, Fyctia, Wattpad sont
    recommandés à sa place), et sur une question de marque ChatGPT **confond
-   « Open Library » avec openlibrary.org** (Internet Archive).
+   « Plume » avec openlibrary.org** (Internet Archive).
 5. **0 backlink** (vérifié) et le site vit sur un domaine `*.vercel.app` —
    deux plafonds au classement et à la citation, à traiter en priorité.
 
@@ -33,7 +33,7 @@ Lecture du HTML réellement servi (curl, 11/10/2026). Le site est
 
 | Page | Titre (identique partout) | H1 | HTTP | Problème principal |
 |---|---|---|---|---|
-| `/` | Open Library — Publier et lire… | 1 | 200 | Titre non spécifique ; 547 mots ; pas de FAQ ; pas d'OG |
+| `/` | Plume — Publier et lire… | 1 | 200 | Titre non spécifique ; 547 mots ; pas de FAQ ; pas d'OG |
 | `/recherche` | idem | 1 | 200 | Titre dupliqué ; contenu résultats client-side |
 | `/recherche?q=romance` | idem | 1 | 200 | Titre dupliqué ; paramètre d'URL indexable sans canonique |
 | `/connexion` | idem | **0** | 200 | Aucun H1 ; pas de `noindex` |
@@ -135,10 +135,10 @@ Détail complet dans `geo.md`. Synthèse :
 - **Backlinks : 0** (Serpstat : « No data found for requested domain »).
 - **Citations IA : 0**. Sur 3 questions posées à ChatGPT (11/10/2026) :
   - *« meilleur site pour publier et lire gratuitement »* → Atramenta,
-    Édition999, Wattpad, Gallica. **Open Library absent.**
+    Édition999, Wattpad, Gallica. **Plume absent.**
   - *« alternative à Wattpad pour un auteur francophone »* → TheBookSailor,
     Fyctia, Atramenta. **Absent.**
-  - *« connais-tu Open Library (open-library-zeta.vercel.app) ? »* → ChatGPT
+  - *« connais-tu Plume (open-library-zeta.vercel.app) ? »* → ChatGPT
     décrit **openlibrary.org** (Internet Archive) et déclare ne pas trouver
     d'information fiable sur le domaine cité.
 - **AI Overviews** : présents sur toutes les requêtes cibles ; ils citent
@@ -160,7 +160,7 @@ Détail complet dans `geo.md`. Synthèse :
 | P0.3 | **Rendre `/livres/[id]` et `/u/[username]` en SSR** (split serveur/client, `generateMetadata`) | `src/app/livres/[id]/page.tsx`, `src/app/u/[username]/page.tsx` | Rend indexables les pages à plus fort volume | 1–2 j |
 | P0.4 | **Un `<title>` et une meta description par page** (`generateMetadata`) | toutes les routes | Fin des titres dupliqués | 0,5 j |
 | P0.5 | `noindex` sur les pages privées (`/bibliotheque`, `/notifications`, `/parametres`, `/profil`, `/onboarding`, `/livres/nouveau`, `/livres/…/ecrire`) | métadonnées de ces routes | Évite d'indexer des pages vides/privées | 1 h |
-| P0.6 | Trancher un **domaine propre** (le domaine `*.vercel.app` + collision de marque `Open Library`/openlibrary.org plafonnent tout) | DNS / branding | Débloque marque + confiance | décision |
+| P0.6 | Trancher un **domaine propre** (le domaine `*.vercel.app` + collision de marque `Plume`/openlibrary.org plafonnent tout) | DNS / branding | Débloque marque + confiance | décision |
 
 ### P1 — gain rapide
 
@@ -255,12 +255,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 ### 7.3 `llms.txt` (racine ou `public/llms.txt`)
 
 ```markdown
-# Open Library
+# Plume
 
 > Plateforme française gratuite pour écrire, publier et lire des livres en ligne,
 > chapitre par chapitre. Publier y est gratuit et l'auteur conserve ses droits.
 
-Open Library permet de créer un livre, d'écrire ses chapitres dans un éditeur
+Plume permet de créer un livre, d'écrire ses chapitres dans un éditeur
 en ligne, de le publier publiquement et de le faire lire. Les lecteurs suivent
 des auteurs, commentent et reçoivent des recommandations.
 
@@ -273,7 +273,7 @@ des auteurs, commentent et reçoivent des recommandations.
 - [Tendances](https://SITE/) : livres les plus lus du moment
 
 ## À propos
-- Open Library est un projet indépendant conçu par HQStudio. [À COMPLÉTER : contact, mentions légales]
+- Plume est un projet indépendant conçu par HQStudio. [À COMPLÉTER : contact, mentions légales]
 ```
 
 ### 7.4 JSON-LD à insérer
@@ -291,12 +291,12 @@ des auteurs, commentent et reçoivent des recommandations.
 
 | Route | Title cible (50–60 car.) |
 |---|---|
-| `/` | Open Library — Publier et lire des livres gratuitement |
-| `/publier-un-livre` | Publier un livre gratuitement en ligne \| Open Library |
-| `/ecrire-un-livre` | Écrire un livre en ligne : sites et outils (2026) \| Open Library |
-| `/livres/[id]` | {titre} — {auteur} \| Lire en ligne \| Open Library |
-| `/u/[username]` | {nom} — livres et histoires \| Open Library |
-| `/recherche` | Explorer des livres gratuits par genre \| Open Library |
+| `/` | Plume — Publier et lire des livres gratuitement |
+| `/publier-un-livre` | Publier un livre gratuitement en ligne \| Plume |
+| `/ecrire-un-livre` | Écrire un livre en ligne : sites et outils (2026) \| Plume |
+| `/livres/[id]` | {titre} — {auteur} \| Lire en ligne \| Plume |
+| `/u/[username]` | {nom} — livres et histoires \| Plume |
+| `/recherche` | Explorer des livres gratuits par genre \| Plume |
 
 ---
 

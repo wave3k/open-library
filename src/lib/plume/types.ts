@@ -1,4 +1,4 @@
-// Types partagés du domaine Open Library.
+// Types partagés du domaine Plume.
 // (Anciennement dans src/lib/plume.ts — découpé par responsabilité.)
 
 export interface Chapter {

@@ -1,13 +1,13 @@
 // Constantes SEO partagées (URL canonique du site, nom, helpers de métadonnées).
-// L'URL est configurable par variable d'environnement pour basculer sur un
-// domaine propre le jour où il sera choisi (voir seo-audit-report.md §P0.6).
+// L'URL est configurable par variable d'environnement ; le défaut est le domaine
+// de production (https://plume.hqmerchant.xyz).
 export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ||
   process.env.SITE_URL ||
-  'https://open-library-zeta.vercel.app'
+  'https://plume.hqmerchant.xyz'
 ).replace(/\/$/, '')
 
-export const SITE_NAME = 'Open Library'
+export const SITE_NAME = 'Plume'
 
 /** Métadonnées d'une page privée ou non indexable. */
 export const NO_INDEX = { index: false, follow: false } as const

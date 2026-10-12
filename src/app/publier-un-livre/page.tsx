@@ -7,7 +7,7 @@ import { faqJsonLd } from '@/lib/jsonld'
 
 const FAQ: { q: string; a: string }[] = [
   {
-    q: 'Publier un livre sur Open Library est-il vraiment gratuit ?',
+    q: 'Publier un livre sur Plume est-il vraiment gratuit ?',
     a: 'Oui. La création de compte, l’écriture et la publication sont gratuites, sans frais cachés ni abonnement.',
   },
   {
@@ -25,9 +25,9 @@ const FAQ: { q: string; a: string }[] = [
 ]
 
 export const metadata: Metadata = pageMetadata({
-  title: 'Publier un livre gratuitement en ligne | Open Library',
+  title: 'Publier un livre gratuitement en ligne | Plume',
   description:
-    'Publie ton livre gratuitement sur Open Library : écris tes chapitres, publie-les et fais-les lire. Sans frais, sans installation, droits d’auteur conservés.',
+    'Publie ton livre gratuitement sur Plume : écris tes chapitres, publie-les et fais-les lire. Sans frais, sans installation, droits d’auteur conservés.',
   path: '/publier-un-livre',
 })
 
@@ -40,7 +40,7 @@ export default function PublierUnLivrePage() {
         <p className="text-sm font-semibold text-amber-700">Publication</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">Publier un livre gratuitement, en ligne</h1>
         <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
-          Open Library permet de <strong>publier un livre gratuitement</strong> : tu crées un compte, tu écris tes
+          Plume permet de <strong>publier un livre gratuitement</strong> : tu crées un compte, tu écris tes
           chapitres dans un éditeur en ligne, puis tu publies. Le livre devient lisible par tout le monde, sans frais
           et sans rien installer, et tu restes propriétaire de ton texte.
         </p>
@@ -51,7 +51,7 @@ export default function PublierUnLivrePage() {
       </header>
 
       <section>
-        <h2 className="text-2xl font-bold">Comment publier un livre gratuitement sur Open Library ?</h2>
+        <h2 className="text-2xl font-bold">Comment publier un livre gratuitement sur Plume ?</h2>
         <p className="text-muted-foreground mt-2 leading-relaxed">
           En quatre étapes, sans logiciel ni installation.
         </p>
@@ -77,7 +77,7 @@ export default function PublierUnLivrePage() {
             <thead>
               <tr className="border-b text-left">
                 <th className="py-2 pr-4 font-semibold">Poste</th>
-                <th className="py-2 font-semibold">Open Library</th>
+                <th className="py-2 font-semibold">Plume</th>
               </tr>
             </thead>
             <tbody>
@@ -100,7 +100,7 @@ export default function PublierUnLivrePage() {
             <thead>
               <tr className="border-b text-left">
                 <th className="py-2 pr-4 font-semibold">Critère</th>
-                <th className="py-2 pr-4 font-semibold">Plateforme gratuite (Open Library)</th>
+                <th className="py-2 pr-4 font-semibold">Plateforme gratuite (Plume)</th>
                 <th className="py-2 font-semibold">Auto-édition payante</th>
               </tr>
             </thead>

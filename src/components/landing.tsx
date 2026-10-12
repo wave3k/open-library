@@ -91,7 +91,7 @@ export function Landing({ initialTrending = [] }: { initialTrending?: Book[] }) 
             Dévore celle des <span className="text-amber-700">autres.</span>
           </h1>
           <p className="text-muted-foreground mt-4 max-w-lg text-lg leading-relaxed">
-            Open Library est la plateforme gratuite pour <strong>publier</strong> tes livres chapitre par chapitre
+            Plume est la plateforme gratuite pour <strong>publier</strong> tes livres chapitre par chapitre
             et les <strong>lire</strong> comme de vrais livres. Rejoins la communauté d’auteurs et de lecteurs.
           </p>
 
@@ -219,7 +219,7 @@ export function Landing({ initialTrending = [] }: { initialTrending?: Book[] }) 
         <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <div>
             <h2 className="flex items-center gap-2 text-2xl font-bold sm:text-3xl"><Sparkles size={24} className="text-amber-400" /> Prêt à publier ton premier livre ?</h2>
-            <p className="mt-2 max-w-xl text-stone-300">Crée ton compte gratuitement, écris, publie, et rejoins la communauté Open Library.</p>
+            <p className="mt-2 max-w-xl text-stone-300">Crée ton compte gratuitement, écris, publie, et rejoins la communauté Plume.</p>
           </div>
           <div className="flex shrink-0 gap-3">
             <Button className="bg-amber-500 text-stone-950 hover:bg-amber-400" onClick={signup}>Créer un compte</Button>
@@ -229,7 +229,7 @@ export function Landing({ initialTrending = [] }: { initialTrending?: Book[] }) 
       </section>
 
       <p className="text-muted-foreground text-center text-xs">
-        Open Library — <Link href="/inscription" className="underline">Publier et lire des livres gratuitement</Link>
+        Plume — <Link href="/inscription" className="underline">Publier et lire des livres gratuitement</Link>
       </p>
     </div>
   )

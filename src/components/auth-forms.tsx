@@ -204,7 +204,7 @@ export function SignupForm() {
           ) : available === false ? (
             <p className="mt-1 text-xs font-medium text-red-600">Ce nom d’utilisateur est déjà pris.</p>
           ) : (
-            <p className="mt-1 text-xs text-stone-500">Ton profil : open-library/u/{username || '…'}</p>
+            <p className="mt-1 text-xs text-stone-500">Ton profil : plume.hqmerchant.xyz/u/{username || '…'}</p>
           )}
         </div>
         <div>

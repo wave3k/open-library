@@ -31,7 +31,7 @@ export function SiteFooter() {
               <span className="bg-primary text-primary-foreground flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-3">
                 <LibraryBig size={18} />
               </span>
-              <span className="text-xl font-bold tracking-tight">Open Library</span>
+              <span className="text-xl font-bold tracking-tight">Plume</span>
             </Link>
             <p className="text-muted-foreground mt-3 max-w-sm text-sm leading-relaxed">
               La plateforme gratuite pour <strong>publier</strong> et <strong>lire</strong> des livres.
@@ -77,7 +77,7 @@ export function SiteFooter() {
         </div>
 
         <div className="text-muted-foreground mt-10 flex flex-col items-center justify-between gap-3 border-t pt-6 text-xs sm:flex-row">
-          <p>©{year ? ` ${year}` : ''} Open Library — Publier et lire des livres gratuitement.</p>
+          <p>©{year ? ` ${year}` : ''} Plume — Publier et lire des livres gratuitement.</p>
           <p>
             Conçu &amp; développé par
             <span className="brand-hover ml-1 font-semibold text-stone-700 dark:text-stone-200">HQStudio</span>

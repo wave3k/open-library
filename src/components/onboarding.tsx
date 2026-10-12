@@ -55,7 +55,7 @@ export function Onboarding() {
           <span className="bg-primary text-primary-foreground flex h-9 w-9 items-center justify-center rounded-xl">
             <Feather size={18} />
           </span>
-          <span className="text-lg font-bold tracking-tight">Open Library</span>
+          <span className="text-lg font-bold tracking-tight">Plume</span>
         </div>
         <button onClick={() => finish(true)} disabled={saving} className="text-muted-foreground text-sm font-medium hover:text-stone-800">
           Passer l’introduction →
@@ -79,7 +79,7 @@ export function Onboarding() {
               </span>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Bienvenue, {user.display_name} 👋</h1>
               <p className="text-muted-foreground mx-auto mt-3 max-w-xl text-lg">
-                Comment as-tu entendu parler d’Open Library ? Ça nous aide à faire découvrir la plateforme à d’autres auteurs.
+                Comment as-tu entendu parler d’Plume ? Ça nous aide à faire découvrir la plateforme à d’autres auteurs.
               </p>
               <div className="mx-auto mt-8 grid max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
                 {REFERRAL_SOURCES.map((r) => (

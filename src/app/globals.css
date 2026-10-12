@@ -129,7 +129,7 @@
   }
 }
 
-/* ---- Open Library : zone de lecture façon livre ---- */
+/* ---- Plume : zone de lecture façon livre ---- */
 .book-page {
   font-family: Georgia, "Times New Roman", serif;
   line-height: 1.9;
@@ -149,7 +149,7 @@
   font-weight: bold;
 }
 
-/* ---- Open Library : couverture plate moderne (sans effet 3D) ---- */
+/* ---- Plume : couverture plate moderne (sans effet 3D) ---- */
 .book3d {
   position: relative;
   flex-shrink: 0;

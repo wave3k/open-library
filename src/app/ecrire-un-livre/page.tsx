@@ -8,15 +8,15 @@ import { faqJsonLd } from '@/lib/jsonld'
 const FAQ: { q: string; a: string }[] = [
   {
     q: 'Peut-on écrire un livre entièrement en ligne et gratuitement ?',
-    a: 'Oui. Avec un éditeur en ligne comme celui d’Open Library, tu écris et organises tes chapitres dans le navigateur, sans rien installer. Créer un compte et écrire sont gratuits.',
+    a: 'Oui. Avec un éditeur en ligne comme celui d’Plume, tu écris et organises tes chapitres dans le navigateur, sans rien installer. Créer un compte et écrire sont gratuits.',
   },
   {
     q: 'Quel est le meilleur outil pour écrire un livre ?',
-    a: 'Tout dépend de ton objectif : un traitement de texte suffit pour un manuscrit, mais une plateforme comme Open Library ajoute l’organisation par chapitres, la sauvegarde automatique et la publication pour être lu.',
+    a: 'Tout dépend de ton objectif : un traitement de texte suffit pour un manuscrit, mais une plateforme comme Plume ajoute l’organisation par chapitres, la sauvegarde automatique et la publication pour être lu.',
   },
   {
     q: 'Puis-je écrire un livre sur mon téléphone ?',
-    a: 'Oui. L’éditeur d’Open Library est conçu pour le mobile : écrire, publier et lire fonctionnent depuis le navigateur du téléphone.',
+    a: 'Oui. L’éditeur d’Plume est conçu pour le mobile : écrire, publier et lire fonctionnent depuis le navigateur du téléphone.',
   },
   {
     q: 'Comment structurer les chapitres d’un roman ?',
@@ -24,19 +24,19 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Et une fois le livre écrit, comment le publier ?',
-    a: 'Sur Open Library, un livre se publie en un clic depuis sa fiche. Il devient alors lisible par les autres lecteurs de la plateforme.',
+    a: 'Sur Plume, un livre se publie en un clic depuis sa fiche. Il devient alors lisible par les autres lecteurs de la plateforme.',
   },
 ]
 
 export const metadata: Metadata = pageMetadata({
-  title: 'Écrire un livre en ligne : outils gratuits (2026) | Open Library',
+  title: 'Écrire un livre en ligne : outils gratuits (2026) | Plume',
   description:
-    'Comment écrire un livre en ligne gratuitement : les meilleurs outils, comment structurer ses chapitres et se faire lire. Guide pratique Open Library.',
+    'Comment écrire un livre en ligne gratuitement : les meilleurs outils, comment structurer ses chapitres et se faire lire. Guide pratique Plume.',
   path: '/ecrire-un-livre',
 })
 
 const TOOLS = [
-  { name: 'Open Library', price: 'Gratuit', publishing: 'Oui (lecteurs inclus)', community: 'Oui', note: 'Écrire, publier et être lu au même endroit.' },
+  { name: 'Plume', price: 'Gratuit', publishing: 'Oui (lecteurs inclus)', community: 'Oui', note: 'Écrire, publier et être lu au même endroit.' },
   { name: 'Traitement de texte (Word, Google Docs)', price: 'Gratuit ou payant', publishing: 'Non', community: 'Non', note: 'Parfait pour le manuscrit, mais pas pour être lu.' },
   { name: 'Logiciels d’écriture dédiés', price: 'Souvent payant', publishing: 'Non', community: 'Non', note: 'Fiches personnages, objectifs de mots ; orientés manuscrit.' },
   { name: 'Plateformes communautaires', price: 'Gratuit (souvent)', publishing: 'Oui', community: 'Oui', note: 'Publient chapitre par chapitre, avec commentaires.' },
@@ -99,7 +99,7 @@ export default function EcrireUnLivrePage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold">Écrire avec Open Library</h2>
+        <h2 className="text-2xl font-bold">Écrire avec Plume</h2>
         <ul className="text-muted-foreground mt-2 space-y-2 leading-relaxed">
           <li>• Un <strong>éditeur par chapitres</strong> (gras, italique, listes, titres) dans le navigateur.</li>
           <li>• <strong>Sauvegarde automatique</strong> : tu ne perds jamais une ligne.</li>
@@ -111,7 +111,7 @@ export default function EcrireUnLivrePage() {
       <section>
         <h2 className="text-2xl font-bold">Comment trouver des lecteurs ?</h2>
         <p className="text-muted-foreground mt-2 leading-relaxed">
-          La plupart des outils s’arrêtent au manuscrit. Sur Open Library, publier un chapitre le rend visible dans
+          La plupart des outils s’arrêtent au manuscrit. Sur Plume, publier un chapitre le rend visible dans
           l’exploration et les tendances, où d’autres lecteurs le découvrent, l’aiment et le commentent. C’est le
           levier le plus concret pour un primo-auteur : être lu sans prospection.
         </p>
@@ -120,7 +120,7 @@ export default function EcrireUnLivrePage() {
       <section>
         <h2 className="text-2xl font-bold">Et les droits d’auteur ?</h2>
         <p className="text-muted-foreground mt-2 leading-relaxed">
-          Tu restes propriétaire de ton texte. Publier sur Open Library ne transfère aucun droit : tu peux retirer ou
+          Tu restes propriétaire de ton texte. Publier sur Plume ne transfère aucun droit : tu peux retirer ou
           dépublier ton livre quand tu le souhaites.
         </p>
       </section>
@@ -143,7 +143,7 @@ export default function EcrireUnLivrePage() {
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href="/inscription" className={buttonVariants({ className: 'bg-amber-500 text-stone-950 hover:bg-amber-400' })}>Créer un compte</Link>
           <Link href="/recherche" className={buttonVariants({ variant: 'outline', className: 'border-stone-600 bg-transparent text-white hover:bg-stone-800' })}>Explorer les livres</Link>
-          <Link href="/alternative-wattpad" className="self-center text-sm text-stone-300 underline">Open Library face à Wattpad</Link>
+          <Link href="/alternative-wattpad" className="self-center text-sm text-stone-300 underline">Plume face à Wattpad</Link>
         </div>
       </section>
     </article>

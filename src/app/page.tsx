@@ -6,9 +6,9 @@ import { siteJsonLd, faqJsonLd } from '@/lib/jsonld'
 import { HOME_FAQ } from '@/lib/faq'
 
 export const metadata = pageMetadata({
-  title: 'Open Library — Publier et lire des livres gratuitement',
+  title: 'Plume — Publier et lire des livres gratuitement',
   description:
-    'Publie et lis des livres gratuitement. Écris ton histoire chapitre par chapitre, partage-la et découvre celles des autres sur Open Library.',
+    'Publie et lis des livres gratuitement. Écris ton histoire chapitre par chapitre, partage-la et découvre celles des autres sur Plume.',
   path: '/',
 })
 
