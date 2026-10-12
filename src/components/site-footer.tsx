@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LibraryBig, Heart } from 'lucide-react'
+import { Feather, Heart } from 'lucide-react'
 import { usePlume } from '@/components/plume-provider'
 
 const BARE_ROUTES = ['/connexion', '/inscription', '/onboarding']
@@ -29,7 +29,7 @@ export function SiteFooter() {
           <div className="lg:col-span-2">
             <Link href={user ? '/bibliotheque' : '/'} className="group inline-flex items-center gap-2">
               <span className="bg-primary text-primary-foreground flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-3">
-                <LibraryBig size={18} />
+                <Feather size={18} />
               </span>
               <span className="text-xl font-bold tracking-tight">Plume</span>
             </Link>

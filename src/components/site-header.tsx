@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LibraryBig, Plus, Settings, Bell, Search } from 'lucide-react'
+import { Feather, Plus, Settings, Bell, Search } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Avatar } from '@/components/avatar'
 import { usePlume } from '@/components/plume-provider'
@@ -38,7 +38,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4">
         <Link href={user ? '/bibliotheque' : '/'} className="group flex items-center gap-2" aria-label="Accueil Plume">
           <span className="bg-primary text-primary-foreground flex h-9 w-9 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-3">
-            <LibraryBig size={18} />
+            <Feather size={18} />
           </span>
           <span className="text-xl font-bold tracking-tight">Plume</span>
         </Link>
