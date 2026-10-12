@@ -13,6 +13,9 @@ const FIXED_PAGES: { path: string; priority: number; changeFrequency: MetadataRo
   { path: '/publier-un-livre', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/ecrire-un-livre', priority: 0.9, changeFrequency: 'monthly' },
   { path: '/alternative-wattpad', priority: 0.8, changeFrequency: 'monthly' },
+  { path: '/mentions-legales', priority: 0.3, changeFrequency: 'yearly' },
+  { path: '/confidentialite', priority: 0.3, changeFrequency: 'yearly' },
+  { path: '/cgu', priority: 0.3, changeFrequency: 'yearly' },
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

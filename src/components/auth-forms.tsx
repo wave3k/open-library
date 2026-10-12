@@ -227,6 +227,11 @@ export function SignupForm() {
           {loading && <Loader2 size={17} className="animate-spin" />}
           {loading ? 'Création…' : 'Créer mon compte'}
         </Button>
+        <p className="text-muted-foreground text-center text-xs leading-relaxed">
+          En créant un compte, tu acceptes les{' '}
+          <a href="/cgu" className="underline">CGU</a> et la{' '}
+          <a href="/confidentialite" className="underline">politique de confidentialité</a>.
+        </p>
         <p className="text-muted-foreground text-center text-sm">
           Déjà un compte ? <a href="/connexion" className="font-semibold text-amber-700 hover:underline">Se connecter</a>
         </p>

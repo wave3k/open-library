@@ -24,7 +24,7 @@ export function SiteFooter() {
   return (
     <footer className="mt-16 border-t bg-card/50">
       <div className="mx-auto max-w-6xl px-4 py-12">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
           {/* Marque */}
           <div className="lg:col-span-2">
             <Link href={user ? '/bibliotheque' : '/'} className="group inline-flex items-center gap-2">
@@ -72,6 +72,16 @@ export function SiteFooter() {
                   <li><Link href="/connexion" className="text-muted-foreground transition-colors hover:text-amber-700">Se connecter</Link></li>
                 </>
               )}
+            </ul>
+          </div>
+
+          {/* Légal */}
+          <div>
+            <h3 className="text-sm font-bold">Légal</h3>
+            <ul className="mt-3 space-y-2 text-sm">
+              <li><Link href="/mentions-legales" className="text-muted-foreground transition-colors hover:text-amber-700">Mentions légales</Link></li>
+              <li><Link href="/confidentialite" className="text-muted-foreground transition-colors hover:text-amber-700">Confidentialité</Link></li>
+              <li><Link href="/cgu" className="text-muted-foreground transition-colors hover:text-amber-700">CGU</Link></li>
             </ul>
           </div>
         </div>

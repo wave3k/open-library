@@ -21,7 +21,10 @@ Plume permet de créer un livre, d'écrire ses chapitres dans un éditeur en lig
 - [Science-Fiction](${SITE_URL}/genre/science-fiction)
 
 ## À propos
-- Plume est un projet indépendant conçu par HQStudio. [À COMPLÉTER : contact, mentions légales]
+- [Mentions légales](${SITE_URL}/mentions-legales) : éditeur et hébergeurs
+- [Confidentialité](${SITE_URL}/confidentialite) : données traitées et droits (RGPD)
+- [CGU](${SITE_URL}/cgu) : conditions d'utilisation
+- Plume est un projet indépendant conçu par HQStudio. Contact : contact@hqmerchant.xyz
 
 ## Optional
 - [Créer un compte](${SITE_URL}/inscription) : inscription gratuite
