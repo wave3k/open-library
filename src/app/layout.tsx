@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Suspense } from 'react'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
@@ -19,11 +19,27 @@ export const metadata: Metadata = {
   title: 'Plume — Publier et lire des livres gratuitement',
   description: 'Publier et lire des livres gratuitement. Écris tes histoires chapitre par chapitre, partage-les et découvre celles des autres sur Plume.',
   applicationName: 'Plume',
+  // Favicons : Google exige un format supporté et une taille multiple de 48px.
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32' },
+      { url: '/icons/icon-48.png', type: 'image/png', sizes: '48x48' },
+      { url: '/icons/icon-96.png', type: 'image/png', sizes: '96x96' },
+      { url: '/icons/icon-144.png', type: 'image/png', sizes: '144x144' },
+      { url: '/icons/icon-192.png', type: 'image/png', sizes: '192x192' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180' }],
+  },
   openGraph: {
     siteName: 'Plume',
     locale: 'fr_FR',
     type: 'website',
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#FDC700',
 }
 
 // Applique le thème avant le premier rendu pour éviter le flash.

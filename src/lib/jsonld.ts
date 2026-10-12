@@ -81,12 +81,14 @@ export function siteJsonLd() {
       {
         '@type': 'Organization',
         name: SITE_NAME,
+        alternateName: 'Plume',
         url: SITE_URL,
-        logo: `${SITE_URL}/icon.svg`,
+        logo: `${SITE_URL}/logo.png`,
       },
       {
         '@type': 'WebSite',
         name: SITE_NAME,
+        alternateName: 'Plume',
         url: SITE_URL,
         inLanguage: 'fr',
         potentialAction: {
